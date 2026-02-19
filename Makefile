@@ -1,7 +1,7 @@
 # Variables
 PROTO_DIR = proto
 GO_OUT = go-server/gen
-PY_OUT = fastapi-gateway/gen
+PY_OUT = fastapi-gateway/app/gen
 UV_CACHE_DIR ?= /tmp/uv-cache
 GOBIN := $(shell go env GOPATH 2>/dev/null)/bin
 export PATH := $(PATH):$(GOBIN)
@@ -38,7 +38,7 @@ check-uv:
 # Generate Go code
 proto-go: check-protoc check-go-plugins
 	mkdir -p $(GO_OUT)
-	rm -f $(GO_OUT)/*.pb.go
+	find $(GO_OUT) -type f -name '*.pb.go' -delete
 	protoc --proto_path=$(PROTO_DIR) \
 		--go_out=go-server --go_opt=module=go-server \
 		--go-grpc_out=go-server --go-grpc_opt=module=go-server \
@@ -49,8 +49,8 @@ proto-py: check-protoc check-uv
 	mkdir -p $(PY_OUT)
 	touch $(PY_OUT)/__init__.py
 	cd fastapi-gateway && UV_CACHE_DIR=$(UV_CACHE_DIR) uv run python -m grpc_tools.protoc -I../$(PROTO_DIR) \
-		--python_out=gen \
-		--grpc_python_out=gen \
+		--python_out=app/gen \
+		--grpc_python_out=app/gen \
 		../$(PROTO_DIR)/*.proto
 	find $(PY_OUT) -name '*_pb2_grpc.py' -type f -exec sed -i -E 's/^import ([a-zA-Z0-9_]+_pb2) as /from . import \1 as /' {} +
 

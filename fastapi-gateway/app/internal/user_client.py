@@ -1,7 +1,7 @@
 import grpc
 
 # We import the generated files from the gen folder
-from gen import user_pb2, user_pb2_grpc
+from app.gen import user_pb2, user_pb2_grpc
 
 class UserClient:
     def __init__(self):

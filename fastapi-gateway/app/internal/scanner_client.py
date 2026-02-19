@@ -1,5 +1,5 @@
 import grpc 
-from gen import scan_pb2, scan_pb2_grpc
+from app.gen import scan_pb2, scan_pb2_grpc
 
 class ScannerClient:
     def __init__(self):

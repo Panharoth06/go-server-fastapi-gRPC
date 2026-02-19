@@ -1,3 +1,4 @@
-# Virtual environments
-fastapi-gatewat/.venv
-
+# Python / FastAPI gateway
+fastapi-gateway/.venv/
+fastapi-gateway/**/__pycache__/
+fastapi-gateway/**/*.py[cod]
