@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package scanner;
+option go_package = "go-server/gen/scanner;scanner";
+
+// service definition
+service ScanService {
+    // RunTool return scanned results indentified by `target` and `tool_name`
+    // return ScanResponse with scanned results details
+  rpc RunTool (ScanRequest) returns (ScanResponse);
+}
+
+
+message ScanRequest {
+  string target = 1;
+  string tool_name = 2;
+}
+
+message ScanResponse {
+  string result_summary = 1;
+  bool success = 2;
+}
+
