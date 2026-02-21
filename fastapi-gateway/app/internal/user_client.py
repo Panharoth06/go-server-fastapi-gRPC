@@ -1,3 +1,5 @@
+import os
+
 import grpc
 
 # We import the generated files from the gen folder
@@ -5,8 +7,9 @@ from app.gen import user_pb2, user_pb2_grpc
 
 class UserClient:
     def __init__(self):
+        grpc_addr = os.getenv("GRPC_SERVER_ADDR", "localhost:50051")
         # Establish the connection to the Go server
-        self.channel = grpc.insecure_channel('localhost:50051')
+        self.channel = grpc.insecure_channel(grpc_addr)
         
         # Create the 'stub' (our portal to the Go methods)
         self.stub = user_pb2_grpc.UserServiceStub(self.channel)

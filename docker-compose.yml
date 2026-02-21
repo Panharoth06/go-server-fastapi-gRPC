@@ -1,0 +1,18 @@
+services:
+  go-server:
+    build:
+      context: ./go-server
+      dockerfile: Dockerfile
+    ports:
+      - "50051:50051"
+
+  fastapi-gateway:
+    build:
+      context: ./fastapi-gateway
+      dockerfile: Dockerfile
+    environment:
+      GRPC_SERVER_ADDR: go-server:50051
+    ports:
+      - "8000:8000"
+    depends_on:
+      - go-server

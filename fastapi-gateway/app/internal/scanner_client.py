@@ -1,9 +1,12 @@
+import os
+
 import grpc 
 from app.gen import scan_pb2, scan_pb2_grpc
 
 class ScannerClient:
     def __init__(self):
-        self.channel = grpc.insecure_channel('localhost:50051')
+        grpc_addr = os.getenv("GRPC_SERVER_ADDR", "localhost:50051")
+        self.channel = grpc.insecure_channel(grpc_addr)
         self.stub = scan_pb2_grpc.ScanServiceStub(self.channel)
         
     def run_scan(self, target: str, tool_name: str):

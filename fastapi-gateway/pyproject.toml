@@ -8,5 +8,6 @@ dependencies = [
     "fastapi[standard]>=0.129.0",
     "grpcio>=1.78.0",
     "grpcio-tools>=1.78.0",
+    "protobuf>=6.31.1",
     "uvicorn>=0.41.0",
 ]

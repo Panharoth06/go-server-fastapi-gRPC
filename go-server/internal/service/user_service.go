@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-
 	users "go-server/gen/user"
 )
 

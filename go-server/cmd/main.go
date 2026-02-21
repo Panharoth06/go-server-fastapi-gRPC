@@ -1,15 +1,13 @@
 package main
 
 import (
+	scan_subdomain "go-server/gen/scan_subdomain"
+	scanner "go-server/gen/scanner"
+	users "go-server/gen/user"
+	"go-server/internal/service"
 	"log"
 	"net"
-
-	"go-server/internal/service"
-
 	"google.golang.org/grpc"
-
-	users "go-server/gen/user"
-	scanner "go-server/gen/scanner"
 )
 
 func main() {
@@ -21,14 +19,11 @@ func main() {
 
 	// 2. Create a new gRPC server instance
 	grpcServer := grpc.NewServer()
-
-
-	grpcServer = grpc.NewServer()
 	
 	// 3. Register our service implementation
 	users.RegisterUserServiceServer(grpcServer, service.NewUserServer())
 	scanner.RegisterScanServiceServer(grpcServer, service.NewScanServer())
-	
+	scan_subdomain.RegisterSubdomainScannerServer(grpcServer, service.NewScanSubdomainServer())
 
 	log.Printf("server listening at %v", lis.Addr())
 
@@ -36,6 +31,5 @@ func main() {
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
-
 
 }

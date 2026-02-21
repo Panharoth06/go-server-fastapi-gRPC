@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package scan_domain;
+option go_package = "go-server/gen/scan_subdomain;scan_subdomain";
+
+// service definition
+service SubdomainScanner {
+    // ScanAndCheck returns domain information such as subdomain, status_code, title and so on
+    // via ScanResponse 
+  rpc ScanAndCheck (ScanRequest) returns (stream ScanResponse);
+}
+
+
+// message for request
+message ScanRequest {
+  string domain = 1;
+}
+
+// message for response
+message ScanResponse {
+  string subdomain = 1;
+  bool is_alive = 2;
+  int32 status_code = 3;
+  string title = 4;
+  string ip = 5;
+//   repeated = array/list because a subdomain is possible to have many technologies
+  repeated string technologies = 6;
+}

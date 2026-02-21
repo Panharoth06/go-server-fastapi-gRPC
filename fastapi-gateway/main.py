@@ -1,6 +1,9 @@
 from fastapi import FastAPI
-from app.internal import user_client, scanner_client
+from app.internal import user_client, scanner_client, scan_subdomain_client
 from app.schema import scanner_schemas
+
+from fastapi.responses import StreamingResponse
+import json
 
 app = FastAPI()
 
@@ -30,3 +33,19 @@ def run_scan(req: scanner_schemas.ScanRequestSchema):
         "is_success": response.success
     }
     
+
+@app.post("/scan-subdomains/{domain}", tags=['ScanSubdomain'])
+def scan_and_check(domain: str):
+    # Swagger expects application/json for this route.
+    return list(scan_subdomain_client.scan_and_check(domain))
+
+
+@app.post("/scan-subdomains-stream/{domain}", tags=['ScanSubdomain'])
+def scan_and_check_stream(domain: str):
+    def event_generator():
+        # This calls ScanSubdomainClient.scan_and_check generator
+        for result in scan_subdomain_client.scan_and_check(domain):
+            # Yield each result as a JSON string followed by a newline
+            yield json.dumps(result) + "\n"
+
+    return StreamingResponse(event_generator(), media_type="application/x-ndjson")
