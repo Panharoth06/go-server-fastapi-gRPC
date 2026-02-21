@@ -3,11 +3,9 @@
 This is the core execution engine for the pentest automation tool. It handles incoming gRPC requests to execute security tools.
 
 ## 🛠 Features
-- **UserService**: Manages user-related data.
-- **ScanService**: Executes automated security tools (e.g., nmap, ping).
+- **SubdomainScanner**: Executes automated security tools (subfinder | httpx).
 
 ## 🚀 Getting Started
-1. **Generate Code**: `make proto`
 2. **Run Server**: `go run cmd/main.go`
    - Listens on: `localhost:50051`
 

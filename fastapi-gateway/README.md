@@ -3,7 +3,6 @@
 A RESTful API wrapper that translates HTTP requests into gRPC calls for the Go backend.
 
 ## 🛠 Features
-- **Pydantic Validation**: Ensures scan requests have a target and tool name.
 - **gRPC Client**: Communicates with the Go server via `grpcio`.
 
 ## 🚀 Getting Started

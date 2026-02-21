@@ -10,13 +10,19 @@ This project uses a "Brain and Muscle" design:
 
 
 ## 🔄 The End-to-End Flow
-1. **Request**: A user sends a JSON POST request to `FastAPI` (e.g., Target: `192.168.1.1`, Tool: `nmap`).
+1. **Request**: A user sends a JSON POST request to `FastAPI`.
 2. **Translation**: FastAPI validates the data and converts it into a gRPC message.
-3. **Execution**: The `Go-server` receives the gRPC call and triggers the specified tool.
+3. **Execution**: The `Go-server` receives the gRPC call and triggers the specified service.
 4. **Response**: Go sends the scan results back to FastAPI, which serves them to the user as JSON.
 
 ## 🚀 Quick Start
 To get the entire system running:
-1. **Start Go**: `cd go-server && go run cmd/main.go`
-2. **Start Python**: `cd fastapi-gateway && uv run uvicorn app.main:app`
-3. **Test**: Visit `http://localhost:8000/docs` to trigger your first scan!
+1. **Generate Code**: `make proto` 
+2. **Start Go**: `cd go-server && go run cmd/main.go`
+3. **Start Python**: `cd fastapi-gateway && uv run uvicorn app.main:app`
+4. **Test**: Visit `http://localhost:8000/docs` to trigger your first scan!
+
+
+## Project Docs:
+- [Go Server Docs](go-server/README.md)
+- [FastAPI Gateway Docs](fastapi-gateway/README.md)
