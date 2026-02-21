@@ -4,8 +4,8 @@ import "time"
 
 type Subdomain struct {
 	SubdomainID uint   `gorm:"column:subdomain_id;primaryKey;autoIncrement" json:"subdomain_id"`
-	DomainID    uint   `gorm:"column:domain_id;not null;index" json:"domain_id"`
-	Name        string `gorm:"column:name;type:varchar(255);not null" json:"name"`
+	DomainID    uint   `gorm:"column:domain_id;not null;index;uniqueIndex:uq_subdomains_domain_name,priority:1" json:"domain_id"`
+	Name        string `gorm:"column:name;type:varchar(255);not null;uniqueIndex:uq_subdomains_domain_name,priority:2" json:"name"`
 	StatusCode  int    `gorm:"column:status_code" json:"status_code"`
 	TitlePage   string `gorm:"column:title_page;type:text" json:"title_page"`
 	IP          string `gorm:"column:ip;type:varchar(45)" json:"ip"`
@@ -20,6 +20,9 @@ type Subdomain struct {
 type SubdomainTechnology struct {
 	SubdomainID  uint `gorm:"column:subdomain_id;primaryKey"`
 	TechnologyID uint `gorm:"column:technology_id;primaryKey"`
+
+	Subdomain  Subdomain  `gorm:"foreignKey:SubdomainID;references:SubdomainID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"-"`
+	Technology Technology `gorm:"foreignKey:TechnologyID;references:TechnologyID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"-"`
 }
 
 func (Subdomain) TableName() string {

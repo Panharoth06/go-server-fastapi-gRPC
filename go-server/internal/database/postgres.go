@@ -7,14 +7,29 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/go-gormigrate/gormigrate/v2"
 	"go-server/internal/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
+var (
+	initOnce sync.Once
+	initDB   *gorm.DB
+	initErr  error
+)
+
 func ConnectAndMigrate() (*gorm.DB, error) {
+	initOnce.Do(func() {
+		initDB, initErr = connectAndMigrate()
+	})
+	return initDB, initErr
+}
+
+func connectAndMigrate() (*gorm.DB, error) {
 	loadDotEnvIfPresent()
 
 	dsn := postgresDSNFromEnv()
@@ -37,76 +52,54 @@ func ConnectAndMigrate() (*gorm.DB, error) {
 	sqlDB.SetMaxOpenConns(20)
 	sqlDB.SetConnMaxLifetime(30 * time.Minute)
 
-	if err := db.SetupJoinTable(&models.Subdomain{}, "Technologies", &models.SubdomainTechnology{}); err != nil {
-		return nil, fmt.Errorf("setup join table subdomain->technologies: %w", err)
-	}
-	if err := db.SetupJoinTable(&models.Technology{}, "Subdomains", &models.SubdomainTechnology{}); err != nil {
-		return nil, fmt.Errorf("setup join table technology->subdomains: %w", err)
-	}
-
-	if err := migrateInOrder(db); err != nil {
-		return nil, fmt.Errorf("auto migrate models: %w", err)
+	if err := runMigrations(db); err != nil {
+		return nil, fmt.Errorf("run migrations: %w", err)
 	}
 
 	return db, nil
 }
 
-func migrateInOrder(db *gorm.DB) error {
-	if err := db.AutoMigrate(&models.Domain{}); err != nil {
-		return fmt.Errorf("migrate domains: %w", err)
-	}
-	if err := db.AutoMigrate(&models.Technology{}); err != nil {
-		return fmt.Errorf("migrate technologies: %w", err)
-	}
-	if err := db.AutoMigrate(&models.Subdomain{}); err != nil {
-		return fmt.Errorf("migrate subdomains: %w", err)
-	}
-	if err := db.AutoMigrate(&models.SubdomainTechnology{}); err != nil {
-		return fmt.Errorf("migrate subdomain_technologies: %w", err)
-	}
+func runMigrations(db *gorm.DB) error {
+	migrator := gormigrate.New(db, &gormigrate.Options{
+		TableName:                 "schema_migrations",
+		IDColumnName:              "version",
+		IDColumnSize:              255,
+		UseTransaction:            true,
+		ValidateUnknownMigrations: true,
+	}, []*gormigrate.Migration{
+		{
+			ID: "202602220001_init_schema",
+			Migrate: func(tx *gorm.DB) error {
+				if err := tx.SetupJoinTable(&models.Subdomain{}, "Technologies", &models.SubdomainTechnology{}); err != nil {
+					return fmt.Errorf("setup join table subdomain->technologies: %w", err)
+				}
+				if err := tx.SetupJoinTable(&models.Technology{}, "Subdomains", &models.SubdomainTechnology{}); err != nil {
+					return fmt.Errorf("setup join table technology->subdomains: %w", err)
+				}
 
-	if err := ensureConstraints(db); err != nil {
-		return fmt.Errorf("ensure foreign keys: %w", err)
-	}
-	return nil
-}
+				if err := tx.AutoMigrate(
+					&models.Domain{},
+					&models.Technology{},
+					&models.Subdomain{},
+					&models.SubdomainTechnology{},
+				); err != nil {
+					return fmt.Errorf("auto migrate schema: %w", err)
+				}
+				return nil
+			},
+			Rollback: func(tx *gorm.DB) error {
+				return tx.Migrator().DropTable(
+					&models.SubdomainTechnology{},
+					&models.Subdomain{},
+					&models.Technology{},
+					&models.Domain{},
+				)
+			},
+		},
+	})
 
-func ensureConstraints(db *gorm.DB) error {
-	stmts := []string{
-		`ALTER TABLE domains DROP CONSTRAINT IF EXISTS fk_subdomains_domain;`,
-		`DO $$
-		BEGIN
-			IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_subdomains_domains') THEN
-				ALTER TABLE subdomains
-					ADD CONSTRAINT fk_subdomains_domains
-					FOREIGN KEY (domain_id) REFERENCES domains(domain_id)
-					ON UPDATE CASCADE ON DELETE CASCADE;
-			END IF;
-		END$$;`,
-		`DO $$
-		BEGIN
-			IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_subdomain_technologies_subdomain') THEN
-				ALTER TABLE subdomain_technologies
-					ADD CONSTRAINT fk_subdomain_technologies_subdomain
-					FOREIGN KEY (subdomain_id) REFERENCES subdomains(subdomain_id)
-					ON UPDATE CASCADE ON DELETE CASCADE;
-			END IF;
-		END$$;`,
-		`DO $$
-		BEGIN
-			IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_subdomain_technologies_technology') THEN
-				ALTER TABLE subdomain_technologies
-					ADD CONSTRAINT fk_subdomain_technologies_technology
-					FOREIGN KEY (technology_id) REFERENCES technologies(technology_id)
-					ON UPDATE CASCADE ON DELETE CASCADE;
-			END IF;
-		END$$;`,
-	}
-
-	for _, stmt := range stmts {
-		if err := db.Exec(stmt).Error; err != nil {
-			return err
-		}
+	if err := migrator.Migrate(); err != nil {
+		return fmt.Errorf("apply gormigrate migrations: %w", err)
 	}
 	return nil
 }

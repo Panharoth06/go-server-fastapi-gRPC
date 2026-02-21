@@ -3,6 +3,7 @@ module go-server
 go 1.25.2
 
 require (
+	github.com/go-gormigrate/gormigrate/v2 v2.1.5
 	github.com/projectdiscovery/goflags v0.1.74
 	github.com/projectdiscovery/httpx v1.8.1
 	github.com/projectdiscovery/subfinder/v2 v2.12.0
@@ -61,7 +62,7 @@ require (
 	github.com/google/go-github/v30 v30.1.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
-	github.com/google/uuid v1.6.0 // indirect
+	github.com/google/uuid v1.6.0 // direct
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/gosimple/slug v1.15.0 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect
@@ -182,7 +183,7 @@ require (
 	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/term v0.39.0 // indirect
 	golang.org/x/text v0.33.0 // indirect
-	golang.org/x/time v0.11.0 // indirect
+	golang.org/x/time v0.12.0 // indirect
 	golang.org/x/tools v0.40.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251202230838-ff82c1b0f217 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect

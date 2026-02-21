@@ -1,4 +1,5 @@
 import base64
+import functools
 import json
 import os
 
@@ -11,16 +12,33 @@ from app.schema import scanner_schemas
 
 from fastapi.responses import StreamingResponse
 
+try:
+    from dotenv import load_dotenv
+except Exception:  # pragma: no cover - optional dependency in runtime images
+    def load_dotenv(*args, **kwargs):  # type: ignore
+        return False
+
+load_dotenv(".env")
+load_dotenv(".env.docker")
+
 app = FastAPI()
 bearer_scheme = HTTPBearer(auto_error=False)
-keycloak_issuer = os.getenv("KEYCLOAK_ISSUER", "").strip()
-keycloak_audience = os.getenv("KEYCLOAK_AUDIENCE", "").strip()
-keycloak_jwks_url = os.getenv("KEYCLOAK_JWKS_URL", "").strip()
 
-if keycloak_issuer and not keycloak_jwks_url:
-    keycloak_jwks_url = f"{keycloak_issuer.rstrip('/')}/protocol/openid-connect/certs"
 
-jwks_client = PyJWKClient(keycloak_jwks_url) if keycloak_jwks_url else None
+def get_keycloak_config() -> tuple[str, str, str]:
+    keycloak_issuer = os.getenv("KEYCLOAK_ISSUER", "").strip()
+    keycloak_audience = os.getenv("KEYCLOAK_AUDIENCE", "").strip()
+    keycloak_jwks_url = os.getenv("KEYCLOAK_JWKS_URL", "").strip()
+
+    if keycloak_issuer and not keycloak_jwks_url:
+        keycloak_jwks_url = f"{keycloak_issuer.rstrip('/')}/protocol/openid-connect/certs"
+
+    return keycloak_issuer, keycloak_audience, keycloak_jwks_url
+
+
+@functools.lru_cache(maxsize=4)
+def get_jwks_client(jwks_url: str) -> PyJWKClient:
+    return PyJWKClient(jwks_url)
 
 
 def decode_jwt_payload(token: str) -> dict:
@@ -47,15 +65,22 @@ def get_user_id_from_bearer(
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Bearer token")
 
-    if not keycloak_issuer or not keycloak_jwks_url or jwks_client is None:
+    keycloak_issuer, keycloak_audience, keycloak_jwks_url = get_keycloak_config()
+    if not keycloak_issuer or not keycloak_jwks_url:
+        missing = []
+        if not keycloak_issuer:
+            missing.append("KEYCLOAK_ISSUER")
+        if not keycloak_jwks_url:
+            missing.append("KEYCLOAK_JWKS_URL")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Keycloak JWT verifier is not configured. Set KEYCLOAK_ISSUER and/or KEYCLOAK_JWKS_URL.",
+            detail=f"Keycloak JWT verifier is not configured. Missing: {', '.join(missing)}.",
         )
 
     token = credentials.credentials
     decode_jwt_payload(token)
     try:
+        jwks_client = get_jwks_client(keycloak_jwks_url)
         signing_key = jwks_client.get_signing_key_from_jwt(token)
         claims = jwt.decode(
             token,
@@ -100,7 +125,7 @@ def run_scan(req: scanner_schemas.ScanRequestSchema):
     }
     
 
-@app.post("/scan-subdomains/{domain}", tags=['ScanSubdomain'], status=201)
+@app.post("/scan-subdomains/{domain}", tags=['ScanSubdomain'], status_code=201)
 def scan_and_check(domain: str, user_id: str = Depends(get_user_id_from_bearer)):
     # Swagger expects application/json for this route.
     return list(scan_subdomain_client.scan_and_check(domain, user_id))
