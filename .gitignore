@@ -2,3 +2,6 @@
 fastapi-gateway/.venv/
 fastapi-gateway/**/__pycache__/
 fastapi-gateway/**/*.py[cod]
+fastapi-gateway/.env
+
+go-server/.env

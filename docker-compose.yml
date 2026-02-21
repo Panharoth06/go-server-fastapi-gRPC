@@ -1,18 +1,49 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: raidenz
+      POSTGRES_PASSWORD: qwer
+      POSTGRES_DB: go_fastapi_db
+    ports:
+      - "5555:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U raidenz -d go_fastapi_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   go-server:
     build:
       context: ./go-server
       dockerfile: Dockerfile
+    env_file:
+      - ./go-server/.env
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
     ports:
       - "50051:50051"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   fastapi-gateway:
     build:
       context: ./fastapi-gateway
       dockerfile: Dockerfile
+    env_file:
+      - ./fastapi-gateway/.env.docker
     environment:
       GRPC_SERVER_ADDR: go-server:50051
     ports:
       - "8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - go-server
+
+volumes:
+  postgres_data:

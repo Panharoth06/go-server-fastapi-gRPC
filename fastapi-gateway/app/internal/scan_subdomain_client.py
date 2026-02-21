@@ -11,8 +11,8 @@ class ScanSubdomainClient:
         # Match the service name defined in your .proto file
         self.stub = scan_subdomain_pb2_grpc.SubdomainScannerStub(self.channel)
         
-    def scan_and_check(self, domain: str):
-        request = scan_subdomain_pb2.ScanRequest(domain=domain)
+    def scan_and_check(self, domain: str, user_id: str = ""):
+        request = scan_subdomain_pb2.ScanRequest(domain=domain, user_id=user_id)
         
         # This returns an iterator. Each 'response' is a ScanResponse object.
         responses = self.stub.ScanAndCheck(request)
@@ -28,5 +28,5 @@ class ScanSubdomainClient:
 scanner_client = ScanSubdomainClient()
 
 
-def scan_and_check(domain: str):
-    return scanner_client.scan_and_check(domain = domain)
+def scan_and_check(domain: str, user_id: str = ""):
+    return scanner_client.scan_and_check(domain=domain, user_id=user_id)

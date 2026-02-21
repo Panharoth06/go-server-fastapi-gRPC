@@ -25,6 +25,7 @@ const (
 type ScanRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Domain        string                 `protobuf:"bytes,1,opt,name=domain,proto3" json:"domain,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -62,6 +63,13 @@ func (*ScanRequest) Descriptor() ([]byte, []int) {
 func (x *ScanRequest) GetDomain() string {
 	if x != nil {
 		return x.Domain
+	}
+	return ""
+}
+
+func (x *ScanRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
 	}
 	return ""
 }
@@ -156,9 +164,10 @@ var File_scan_subdomain_proto protoreflect.FileDescriptor
 
 const file_scan_subdomain_proto_rawDesc = "" +
 	"\n" +
-	"\x14scan_subdomain.proto\x12\vscan_domain\"%\n" +
+	"\x14scan_subdomain.proto\x12\vscan_domain\">\n" +
 	"\vScanRequest\x12\x16\n" +
-	"\x06domain\x18\x01 \x01(\tR\x06domain\"\xb2\x01\n" +
+	"\x06domain\x18\x01 \x01(\tR\x06domain\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\"\xb2\x01\n" +
 	"\fScanResponse\x12\x1c\n" +
 	"\tsubdomain\x18\x01 \x01(\tR\tsubdomain\x12\x19\n" +
 	"\bis_alive\x18\x02 \x01(\bR\aisAlive\x12\x1f\n" +

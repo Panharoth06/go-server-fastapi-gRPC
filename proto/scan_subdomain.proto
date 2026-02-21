@@ -14,6 +14,7 @@ service SubdomainScanner {
 // message for request
 message ScanRequest {
   string domain = 1;
+  string user_id = 2;
 }
 
 // message for response
