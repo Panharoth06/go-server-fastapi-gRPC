@@ -2,6 +2,9 @@ package database
 
 import (
 	"bufio"
+	"context"
+	"database/sql"
+	"embed"
 	"errors"
 	"fmt"
 	"os"
@@ -10,26 +13,35 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-gormigrate/gormigrate/v2"
-	"go-server/internal/models"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
+	_ "github.com/jackc/pgx/v5/stdlib"
+	dbsqlc "go-server/internal/database/sqlc"
 )
 
-var (
-	initOnce sync.Once
-	initDB   *gorm.DB
-	initErr  error
-)
+//go:embed migrations/*.sql
+var migrationsFS embed.FS
 
-func ConnectAndMigrate() (*gorm.DB, error) {
-	initOnce.Do(func() {
-		initDB, initErr = connectAndMigrate()
-	})
-	return initDB, initErr
+type Store struct {
+	DB      *sql.DB
+	Queries *dbsqlc.Queries
 }
 
-func connectAndMigrate() (*gorm.DB, error) {
+var (
+	initOnce  sync.Once
+	initStore *Store
+	initErr   error
+)
+
+func ConnectAndMigrate() (*Store, error) {
+	initOnce.Do(func() {
+		initStore, initErr = connectAndMigrate()
+	})
+	return initStore, initErr
+}
+
+func connectAndMigrate() (*Store, error) {
 	loadDotEnvIfPresent()
 
 	dsn := postgresDSNFromEnv()
@@ -37,69 +49,78 @@ func connectAndMigrate() (*gorm.DB, error) {
 		return nil, errors.New("database connection is missing: set DATABASE_URL or DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME")
 	}
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		DisableForeignKeyConstraintWhenMigrating: true,
-	})
+	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("connect postgres: %w", err)
 	}
 
-	sqlDB, err := db.DB()
-	if err != nil {
-		return nil, fmt.Errorf("open sql db: %w", err)
+	db.SetMaxIdleConns(5)
+	db.SetMaxOpenConns(20)
+	db.SetConnMaxLifetime(30 * time.Minute)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := db.PingContext(ctx); err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("ping postgres: %w", err)
 	}
-	sqlDB.SetMaxIdleConns(5)
-	sqlDB.SetMaxOpenConns(20)
-	sqlDB.SetConnMaxLifetime(30 * time.Minute)
 
 	if err := runMigrations(db); err != nil {
+		_ = db.Close()
 		return nil, fmt.Errorf("run migrations: %w", err)
 	}
 
-	return db, nil
+	return &Store{
+		DB:      db,
+		Queries: dbsqlc.New(db),
+	}, nil
 }
 
-func runMigrations(db *gorm.DB) error {
-	migrator := gormigrate.New(db, &gormigrate.Options{
-		TableName:                 "schema_migrations",
-		IDColumnName:              "version",
-		IDColumnSize:              255,
-		UseTransaction:            true,
-		ValidateUnknownMigrations: true,
-	}, []*gormigrate.Migration{
-		{
-			ID: "202602220001_init_schema",
-			Migrate: func(tx *gorm.DB) error {
-				if err := tx.SetupJoinTable(&models.Subdomain{}, "Technologies", &models.SubdomainTechnology{}); err != nil {
-					return fmt.Errorf("setup join table subdomain->technologies: %w", err)
-				}
-				if err := tx.SetupJoinTable(&models.Technology{}, "Subdomains", &models.SubdomainTechnology{}); err != nil {
-					return fmt.Errorf("setup join table technology->subdomains: %w", err)
-				}
+func runMigrations(db *sql.DB) error {
+	sourceDriver, err := iofs.New(migrationsFS, "migrations")
+	if err != nil {
+		return fmt.Errorf("create iofs migration source: %w", err)
+	}
 
-				if err := tx.AutoMigrate(
-					&models.Domain{},
-					&models.Technology{},
-					&models.Subdomain{},
-					&models.SubdomainTechnology{},
-				); err != nil {
-					return fmt.Errorf("auto migrate schema: %w", err)
-				}
-				return nil
-			},
-			Rollback: func(tx *gorm.DB) error {
-				return tx.Migrator().DropTable(
-					&models.SubdomainTechnology{},
-					&models.Subdomain{},
-					&models.Technology{},
-					&models.Domain{},
-				)
-			},
-		},
+	// Use a dedicated sql.Conn for migrations so closing migrate does not close the shared *sql.DB.
+	ctx := context.Background()
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		return fmt.Errorf("create postgres migration connection: %w", err)
+	}
+
+	databaseDriver, err := postgres.WithConnection(ctx, conn, &postgres.Config{
+		MigrationsTable: "schema_migrations_sqlc",
 	})
+	if err != nil {
+		_ = conn.Close()
+		return fmt.Errorf("create postgres migration driver: %w", err)
+	}
 
-	if err := migrator.Migrate(); err != nil {
-		return fmt.Errorf("apply gormigrate migrations: %w", err)
+	m, err := migrate.NewWithInstance("iofs", sourceDriver, "postgres", databaseDriver)
+	if err != nil {
+		return fmt.Errorf("create migrate instance: %w", err)
+	}
+
+	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		_ = closeMigrator(m)
+		return fmt.Errorf("apply migrations: %w", err)
+	}
+
+	if err := closeMigrator(m); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func closeMigrator(m *migrate.Migrate) error {
+	srcErr, dbErr := m.Close()
+	if srcErr != nil {
+		return fmt.Errorf("close migration source: %w", srcErr)
+	}
+	if dbErr != nil {
+		return fmt.Errorf("close migration database driver: %w", dbErr)
 	}
 	return nil
 }

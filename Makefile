@@ -2,14 +2,19 @@
 PROTO_DIR = proto
 GO_OUT = go-server/gen
 PY_OUT = fastapi-gateway/app/gen
+SQLC_CONFIG = go-server/sqlc.yaml
 UV_CACHE_DIR ?= /tmp/uv-cache
 GOBIN := $(shell go env GOPATH 2>/dev/null)/bin
 export PATH := $(PATH):$(GOBIN)
 
-.PHONY: proto-go proto-py proto clean check-protoc check-go-plugins check-uv
+.PHONY: proto-go proto-py proto sqlc clean check-protoc check-go-plugins check-uv
 
 # Generate both
 proto: proto-go proto-py
+
+# Generate sqlc queries
+sqlc:
+	cd go-server && go run github.com/sqlc-dev/sqlc/cmd/sqlc@v1.27.0 generate -f $(notdir $(SQLC_CONFIG))
 
 check-protoc:
 	@command -v protoc >/dev/null || ( \

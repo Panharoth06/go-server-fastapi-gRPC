@@ -1,0 +1,17 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    schema: "internal/database/schema.sql"
+    queries: "internal/database/queries"
+    gen:
+      go:
+        package: "dbsqlc"
+        out: "internal/database/sqlc"
+        sql_package: "database/sql"
+        emit_interface: true
+        emit_empty_slices: true
+        overrides:
+          - db_type: "uuid"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
