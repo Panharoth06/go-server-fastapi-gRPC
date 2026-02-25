@@ -1,3 +1,9 @@
+-- +goose Up
+ALTER TABLE domains
+    DROP COLUMN IF EXISTS created_at,
+    DROP COLUMN IF EXISTS updated_at;
+
+-- +goose Down
 ALTER TABLE domains
     ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();

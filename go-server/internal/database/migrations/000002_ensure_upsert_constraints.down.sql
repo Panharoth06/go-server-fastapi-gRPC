@@ -1,2 +1,0 @@
--- No-op rollback.
--- These constraints may already exist from the base schema migration.

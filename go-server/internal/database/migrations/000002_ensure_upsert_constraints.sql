@@ -1,3 +1,4 @@
+-- +goose Up
 -- Ensure ON CONFLICT targets exist on older local databases where tables
 -- may have been created before unique constraints were introduced.
 -- This migration also deduplicates existing rows so unique constraints can be added.
@@ -145,6 +146,7 @@ USING dups
 WHERE t.technology_id = dups.dup_id;
 
 -- 4) Ensure unique constraints for ON CONFLICT targets.
+-- +goose StatementBegin
 DO $$
 BEGIN
     IF NOT EXISTS (
@@ -171,7 +173,9 @@ BEGIN
         END IF;
     END IF;
 END $$;
+-- +goose StatementEnd
 
+-- +goose StatementBegin
 DO $$
 BEGIN
     IF NOT EXISTS (
@@ -198,7 +202,9 @@ BEGIN
         END IF;
     END IF;
 END $$;
+-- +goose StatementEnd
 
+-- +goose StatementBegin
 DO $$
 BEGIN
     IF NOT EXISTS (
@@ -225,3 +231,8 @@ BEGIN
         END IF;
     END IF;
 END $$;
+-- +goose StatementEnd
+
+-- +goose Down
+-- No-op rollback. These constraints may already exist from the base schema migration.
+SELECT 1;

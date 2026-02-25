@@ -3,12 +3,17 @@ module go-server
 go 1.25.2
 
 require (
-	github.com/golang-migrate/migrate/v4 v4.19.1
+	github.com/pressly/goose/v3 v3.26.0
 	github.com/projectdiscovery/goflags v0.1.74
 	github.com/projectdiscovery/httpx v1.8.1
 	github.com/projectdiscovery/subfinder/v2 v2.12.0
 	google.golang.org/grpc v1.79.1
 	google.golang.org/protobuf v1.36.11
+)
+
+require (
+	github.com/mfridman/interpolate v0.0.2 // indirect
+	github.com/sethvargo/go-retry v0.3.0 // indirect
 )
 
 require (

@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE IF NOT EXISTS domains (
     domain_id BIGSERIAL PRIMARY KEY,
     user_id UUID NOT NULL,
@@ -52,3 +53,9 @@ CREATE TABLE IF NOT EXISTS subdomain_technologies (
 
 CREATE INDEX IF NOT EXISTS idx_subdomains_domain_id ON subdomains (domain_id);
 CREATE INDEX IF NOT EXISTS idx_technologies_name_version ON technologies (name, version);
+
+-- +goose Down
+DROP TABLE IF EXISTS subdomain_technologies;
+DROP TABLE IF EXISTS subdomains;
+DROP TABLE IF EXISTS technologies;
+DROP TABLE IF EXISTS domains;

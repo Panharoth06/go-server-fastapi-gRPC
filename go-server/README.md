@@ -10,10 +10,17 @@ This is the core execution engine for the pentest automation tool. It handles in
    - Listens on: `localhost:50051`
 
 ## 🗄 Database
-- Uses `golang-migrate` for schema migrations.
+- Uses `goose` for schema migrations.
 - Uses `sqlc` for type-safe query generation.
 - Migrations are stored in `internal/database/migrations` and embedded in the Go binary.
 - Query definitions are in `internal/database/queries`, generated code is in `internal/database/sqlc`.
+
+### Migration Commands
+Run from repository root:
+- `make goose-status DATABASE_URL=postgres://...`
+- `make goose-up DATABASE_URL=postgres://...`
+- `make goose-down DATABASE_URL=postgres://...`
+- `make goose-create NAME=add_example_column`
 
 ### Regenerate sqlc
 Run from repository root:

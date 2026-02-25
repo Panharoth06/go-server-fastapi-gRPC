@@ -1,3 +1,4 @@
+-- +goose Up
 UPDATE technologies
 SET
     created_at = COALESCE(created_at, NOW()),
@@ -21,3 +22,16 @@ ALTER TABLE subdomains
     ALTER COLUMN updated_at SET DEFAULT NOW(),
     ALTER COLUMN created_at SET NOT NULL,
     ALTER COLUMN updated_at SET NOT NULL;
+
+-- +goose Down
+ALTER TABLE subdomains
+    ALTER COLUMN created_at DROP NOT NULL,
+    ALTER COLUMN updated_at DROP NOT NULL,
+    ALTER COLUMN created_at DROP DEFAULT,
+    ALTER COLUMN updated_at DROP DEFAULT;
+
+ALTER TABLE technologies
+    ALTER COLUMN created_at DROP NOT NULL,
+    ALTER COLUMN updated_at DROP NOT NULL,
+    ALTER COLUMN created_at DROP DEFAULT,
+    ALTER COLUMN updated_at DROP DEFAULT;

@@ -4,10 +4,12 @@ GO_OUT = go-server/gen
 PY_OUT = fastapi-gateway/app/gen
 SQLC_CONFIG = go-server/sqlc.yaml
 UV_CACHE_DIR ?= /tmp/uv-cache
+GOOSE_VERSION ?= v3.26.0
+GOOSE_DBSTRING ?= $(DATABASE_URL)
 GOBIN := $(shell go env GOPATH 2>/dev/null)/bin
 export PATH := $(PATH):$(GOBIN)
 
-.PHONY: proto-go proto-py proto sqlc clean check-protoc check-go-plugins check-uv
+.PHONY: proto-go proto-py proto sqlc clean check-protoc check-go-plugins check-uv check-goose-db check-goose-name goose-status goose-up goose-down goose-reset goose-create
 
 # Generate both
 proto: proto-go proto-py
@@ -15,6 +17,31 @@ proto: proto-go proto-py
 # Generate sqlc queries
 sqlc:
 	cd go-server && go run github.com/sqlc-dev/sqlc/cmd/sqlc@v1.27.0 generate -f $(notdir $(SQLC_CONFIG))
+
+check-goose-db:
+	@test -n "$(GOOSE_DBSTRING)" || ( \
+		echo "error: set DATABASE_URL or GOOSE_DBSTRING for goose commands"; \
+		exit 1 )
+
+check-goose-name:
+	@test -n "$(NAME)" || ( \
+		echo "error: set NAME=<migration_name>"; \
+		exit 1 )
+
+goose-status: check-goose-db
+	cd go-server && go run github.com/pressly/goose/v3/cmd/goose@$(GOOSE_VERSION) -dir internal/database/migrations postgres "$(GOOSE_DBSTRING)" status
+
+goose-up: check-goose-db
+	cd go-server && go run github.com/pressly/goose/v3/cmd/goose@$(GOOSE_VERSION) -dir internal/database/migrations postgres "$(GOOSE_DBSTRING)" up
+
+goose-down: check-goose-db
+	cd go-server && go run github.com/pressly/goose/v3/cmd/goose@$(GOOSE_VERSION) -dir internal/database/migrations postgres "$(GOOSE_DBSTRING)" down
+
+goose-reset: check-goose-db
+	cd go-server && go run github.com/pressly/goose/v3/cmd/goose@$(GOOSE_VERSION) -dir internal/database/migrations postgres "$(GOOSE_DBSTRING)" reset
+
+goose-create: check-goose-name
+	cd go-server && go run github.com/pressly/goose/v3/cmd/goose@$(GOOSE_VERSION) -dir internal/database/migrations create "$(NAME)" sql
 
 check-protoc:
 	@command -v protoc >/dev/null || ( \

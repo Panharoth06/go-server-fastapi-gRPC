@@ -13,10 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
-	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
 	dbsqlc "go-server/internal/database/sqlc"
 )
 
@@ -77,50 +75,12 @@ func connectAndMigrate() (*Store, error) {
 }
 
 func runMigrations(db *sql.DB) error {
-	sourceDriver, err := iofs.New(migrationsFS, "migrations")
-	if err != nil {
-		return fmt.Errorf("create iofs migration source: %w", err)
+	goose.SetBaseFS(migrationsFS)
+	if err := goose.SetDialect("postgres"); err != nil {
+		return fmt.Errorf("set goose dialect: %w", err)
 	}
-
-	// Use a dedicated sql.Conn for migrations so closing migrate does not close the shared *sql.DB.
-	ctx := context.Background()
-	conn, err := db.Conn(ctx)
-	if err != nil {
-		return fmt.Errorf("create postgres migration connection: %w", err)
-	}
-
-	databaseDriver, err := postgres.WithConnection(ctx, conn, &postgres.Config{
-		MigrationsTable: "schema_migrations_sqlc",
-	})
-	if err != nil {
-		_ = conn.Close()
-		return fmt.Errorf("create postgres migration driver: %w", err)
-	}
-
-	m, err := migrate.NewWithInstance("iofs", sourceDriver, "postgres", databaseDriver)
-	if err != nil {
-		return fmt.Errorf("create migrate instance: %w", err)
-	}
-
-	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		_ = closeMigrator(m)
-		return fmt.Errorf("apply migrations: %w", err)
-	}
-
-	if err := closeMigrator(m); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func closeMigrator(m *migrate.Migrate) error {
-	srcErr, dbErr := m.Close()
-	if srcErr != nil {
-		return fmt.Errorf("close migration source: %w", srcErr)
-	}
-	if dbErr != nil {
-		return fmt.Errorf("close migration database driver: %w", dbErr)
+	if err := goose.Up(db, "migrations"); err != nil {
+		return fmt.Errorf("apply goose migrations: %w", err)
 	}
 	return nil
 }
