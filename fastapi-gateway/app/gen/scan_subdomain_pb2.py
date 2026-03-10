@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x14scan_subdomain.proto\x12\x0bscan_domain\".\n\x0bScanRequest\x12\x0e\n\x06\x64omain\x18\x01 \x01(\t\x12\x0f\n\x07user_id\x18\x02 \x01(\t\"y\n\x0cScanResponse\x12\x11\n\tsubdomain\x18\x01 \x01(\t\x12\x10\n\x08is_alive\x18\x02 \x01(\x08\x12\x13\n\x0bstatus_code\x18\x03 \x01(\x05\x12\r\n\x05title\x18\x04 \x01(\t\x12\n\n\x02ip\x18\x05 \x01(\t\x12\x14\n\x0ctechnologies\x18\x06 \x03(\t2Y\n\x10SubdomainScanner\x12\x45\n\x0cScanAndCheck\x12\x18.scan_domain.ScanRequest\x1a\x19.scan_domain.ScanResponse0\x01\x42-Z+go-server/gen/scan_subdomain;scan_subdomainb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x14scan_subdomain.proto\x12\x0bscan_domain\"?\n\x0bScanRequest\x12\x0e\n\x06\x64omain\x18\x01 \x01(\t\x12\x0f\n\x07user_id\x18\x02 \x01(\t\x12\x0f\n\x07scan_id\x18\x03 \x01(\t\"\x8a\x01\n\x0cScanResponse\x12\x11\n\tsubdomain\x18\x01 \x01(\t\x12\x10\n\x08is_alive\x18\x02 \x01(\x08\x12\x13\n\x0bstatus_code\x18\x03 \x01(\x05\x12\r\n\x05title\x18\x04 \x01(\t\x12\n\n\x02ip\x18\x05 \x01(\t\x12\x14\n\x0ctechnologies\x18\x06 \x03(\t\x12\x0f\n\x07scan_id\x18\x07 \x01(\t\"5\n\x11\x43\x61ncelScanRequest\x12\x0f\n\x07scan_id\x18\x01 \x01(\t\x12\x0f\n\x07user_id\x18\x02 \x01(\t\"I\n\x12\x43\x61ncelScanResponse\x12\x0f\n\x07scan_id\x18\x01 \x01(\t\x12\x11\n\tcancelled\x18\x02 \x01(\x08\x12\x0f\n\x07message\x18\x03 \x01(\t2\xa8\x01\n\x10SubdomainScanner\x12\x45\n\x0cScanAndCheck\x12\x18.scan_domain.ScanRequest\x1a\x19.scan_domain.ScanResponse0\x01\x12M\n\nCancelScan\x12\x1e.scan_domain.CancelScanRequest\x1a\x1f.scan_domain.CancelScanResponseB-Z+go-server/gen/scan_subdomain;scan_subdomainb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,9 +33,13 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'Z+go-server/gen/scan_subdomain;scan_subdomain'
   _globals['_SCANREQUEST']._serialized_start=37
-  _globals['_SCANREQUEST']._serialized_end=83
-  _globals['_SCANRESPONSE']._serialized_start=85
-  _globals['_SCANRESPONSE']._serialized_end=206
-  _globals['_SUBDOMAINSCANNER']._serialized_start=208
-  _globals['_SUBDOMAINSCANNER']._serialized_end=297
+  _globals['_SCANREQUEST']._serialized_end=100
+  _globals['_SCANRESPONSE']._serialized_start=103
+  _globals['_SCANRESPONSE']._serialized_end=241
+  _globals['_CANCELSCANREQUEST']._serialized_start=243
+  _globals['_CANCELSCANREQUEST']._serialized_end=296
+  _globals['_CANCELSCANRESPONSE']._serialized_start=298
+  _globals['_CANCELSCANRESPONSE']._serialized_end=371
+  _globals['_SUBDOMAINSCANNER']._serialized_start=374
+  _globals['_SUBDOMAINSCANNER']._serialized_end=542
 # @@protoc_insertion_point(module_scope)

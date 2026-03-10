@@ -40,6 +40,11 @@ class SubdomainScannerStub(object):
                 request_serializer=scan__subdomain__pb2.ScanRequest.SerializeToString,
                 response_deserializer=scan__subdomain__pb2.ScanResponse.FromString,
                 _registered_method=True)
+        self.CancelScan = channel.unary_unary(
+                '/scan_domain.SubdomainScanner/CancelScan',
+                request_serializer=scan__subdomain__pb2.CancelScanRequest.SerializeToString,
+                response_deserializer=scan__subdomain__pb2.CancelScanResponse.FromString,
+                _registered_method=True)
 
 
 class SubdomainScannerServicer(object):
@@ -48,8 +53,14 @@ class SubdomainScannerServicer(object):
 
     def ScanAndCheck(self, request, context):
         """ScanAndCheck returns domain information such as subdomain, status_code, title and so on
-        via ScanResponse 
+        via ScanResponse
         """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def CancelScan(self, request, context):
+        """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
@@ -61,6 +72,11 @@ def add_SubdomainScannerServicer_to_server(servicer, server):
                     servicer.ScanAndCheck,
                     request_deserializer=scan__subdomain__pb2.ScanRequest.FromString,
                     response_serializer=scan__subdomain__pb2.ScanResponse.SerializeToString,
+            ),
+            'CancelScan': grpc.unary_unary_rpc_method_handler(
+                    servicer.CancelScan,
+                    request_deserializer=scan__subdomain__pb2.CancelScanRequest.FromString,
+                    response_serializer=scan__subdomain__pb2.CancelScanResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -91,6 +107,33 @@ class SubdomainScanner(object):
             '/scan_domain.SubdomainScanner/ScanAndCheck',
             scan__subdomain__pb2.ScanRequest.SerializeToString,
             scan__subdomain__pb2.ScanResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def CancelScan(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/scan_domain.SubdomainScanner/CancelScan',
+            scan__subdomain__pb2.CancelScanRequest.SerializeToString,
+            scan__subdomain__pb2.CancelScanResponse.FromString,
             options,
             channel_credentials,
             insecure,

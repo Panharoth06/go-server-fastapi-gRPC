@@ -5,9 +5,10 @@ option go_package = "go-server/gen/scan_subdomain;scan_subdomain";
 
 // service definition
 service SubdomainScanner {
-    // ScanAndCheck returns domain information such as subdomain, status_code, title and so on
-    // via ScanResponse 
+  // ScanAndCheck returns domain information such as subdomain, status_code, title and so on
+  // via ScanResponse
   rpc ScanAndCheck (ScanRequest) returns (stream ScanResponse);
+  rpc CancelScan (CancelScanRequest) returns (CancelScanResponse);
 }
 
 
@@ -15,6 +16,7 @@ service SubdomainScanner {
 message ScanRequest {
   string domain = 1;
   string user_id = 2;
+  string scan_id = 3;
 }
 
 // message for response
@@ -24,6 +26,18 @@ message ScanResponse {
   int32 status_code = 3;
   string title = 4;
   string ip = 5;
-//   repeated = array/list because a subdomain is possible to have many technologies
+  // repeated = array/list because a subdomain is possible to have many technologies
   repeated string technologies = 6;
+  string scan_id = 7;
+}
+
+message CancelScanRequest {
+  string scan_id = 1;
+  string user_id = 2;
+}
+
+message CancelScanResponse {
+  string scan_id = 1;
+  bool cancelled = 2;
+  string message = 3;
 }

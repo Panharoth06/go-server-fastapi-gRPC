@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -27,10 +28,17 @@ type scanSubdomainServer struct {
 	scan_subdomain.UnimplementedSubdomainScannerServer
 }
 
+type activeScan struct {
+	userID     string
+	cancel     context.CancelFunc
+	cancelOnce sync.Once
+}
+
 var (
-	dbInitOnce sync.Once
-	dbStore    *database.Store
-	dbInitErr  error
+	dbInitOnce         sync.Once
+	dbStore            *database.Store
+	dbInitErr          error
+	activeSubdomainMap sync.Map
 )
 
 const (
@@ -55,18 +63,37 @@ func (s *scanSubdomainServer) ScanAndCheck(
 	req *scan_subdomain.ScanRequest,
 	stream scan_subdomain.SubdomainScanner_ScanAndCheckServer,
 ) error {
-	if req == nil || req.Domain == "" {
+	if req == nil {
+		return status.Error(codes.InvalidArgument, "request cannot be empty")
+	}
+
+	domain := strings.TrimSpace(req.Domain)
+	if domain == "" {
 		return status.Error(codes.InvalidArgument, "domain cannot be empty")
+	}
+
+	userID := strings.TrimSpace(req.UserId)
+	scanID := normalizeScanID(req.ScanId)
+	if scanID == "" {
+		scanID = uuid.NewString()
 	}
 
 	ctx := stream.Context()
 	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	if err := registerActiveScan(scanID, userID, cancel); err != nil {
+		cancel()
+		return err
+	}
+	defer func() {
+		unregisterActiveScan(scanID)
+		cancel()
+	}()
 
 	var (
-		mu         sync.Mutex // mu is used because the callback will be called from multiple goroutines inside subfinder.
-		subdomains []string
-		seen       = map[string]struct{}{} // seen is a set (Go doesn’t have a native set type; map[string]struct{} is the idiom).
+		subdomainsMu sync.Mutex
+		streamMu     sync.Mutex
+		subdomains   []string
+		seen         = map[string]struct{}{}
 	)
 
 	var (
@@ -83,17 +110,12 @@ func (s *scanSubdomainServer) ScanAndCheck(
 				return
 			}
 
-			/*
-				Why lock?
-				Appending to a slice and writing to a map are not safe concurrently.
-				Analogy: seen + subdomains are a shared notebook. mu is the rule: “only one person writes in the notebook at a time.”
-			*/
-			mu.Lock()
+			subdomainsMu.Lock()
 			if _, ok := seen[result.Host]; !ok {
 				seen[result.Host] = struct{}{}
 				subdomains = append(subdomains, result.Host)
 			}
-			mu.Unlock()
+			subdomainsMu.Unlock()
 		},
 	}
 
@@ -101,8 +123,14 @@ func (s *scanSubdomainServer) ScanAndCheck(
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to create subfinder runner: %v", err)
 	}
-	if _, err := subfinderRunner.EnumerateSingleDomainWithCtx(context.Background(), req.Domain, nil); err != nil {
+	if _, err := subfinderRunner.EnumerateSingleDomainWithCtx(ctx, domain, nil); err != nil {
+		if isCanceledError(ctx, err) {
+			return canceledScanError()
+		}
 		return status.Errorf(codes.Internal, "subfinder failed: %v", err)
+	}
+	if err := ctx.Err(); err != nil {
+		return canceledScanError()
 	}
 
 	if len(subdomains) == 0 {
@@ -115,20 +143,14 @@ func (s *scanSubdomainServer) ScanAndCheck(
 		store = nil
 	}
 
-	// “Create domain once” with another sync.Once
 	var (
 		domainOnce sync.Once
 		domainID   int64
 		domainErr  error
 	)
-	/*
-		Why?
-		Many results come in (for many subdomains). You only want to upsert the domain row one time.
-		Analogy: “Create the folder once; then file many documents into it.”
-	*/
 	ensureDomain := func() (int64, error) {
 		domainOnce.Do(func() {
-			domainID, domainErr = getOrCreateDomain(store, req.Domain, req.UserId)
+			domainID, domainErr = getOrCreateDomain(ctx, store, domain, userID)
 		})
 		return domainID, domainErr
 	}
@@ -137,14 +159,6 @@ func (s *scanSubdomainServer) ScanAndCheck(
 		persistWG   sync.WaitGroup
 		persistJobs chan scanResultPersistTask
 	)
-	//	Persistence worker pool (channels + goroutines + WaitGroup)
-	/*
-		Only if store != nil:
-		- create buffered channel persistJobs
-		- start workerCount goroutines
-		- each worker reads tasks from the channel and saves to DB
-		- later close channel and wait for workers to finish
-	*/
 	if store != nil {
 		persistJobs = make(chan scanResultPersistTask, persistQueueSize)
 		workerCount := persistWorkerSize
@@ -162,15 +176,15 @@ func (s *scanSubdomainServer) ScanAndCheck(
 				for {
 					select {
 					case <-ctx.Done():
-						return // stop immediately on client cancel
+						return
 					case task, ok := <-persistJobs:
 						if !ok {
-							return // channel closed normally
+							return
 						}
 
 						id, err := ensureDomain()
 						if err != nil {
-							log.Printf("scan_subdomain: ensure domain failed (%s): %v", req.Domain, err)
+							log.Printf("scan_subdomain: ensure domain failed (%s): %v", domain, err)
 							continue
 						}
 
@@ -184,7 +198,7 @@ func (s *scanSubdomainServer) ScanAndCheck(
 							task.ip,
 							task.isAlive,
 							task.technologies,
-						); err != nil {
+						); err != nil && !isCanceledError(ctx, err) {
 							log.Printf("scan_subdomain: save result failed (%s): %v", task.subdomain, err)
 						}
 					}
@@ -205,7 +219,6 @@ func (s *scanSubdomainServer) ScanAndCheck(
 		Retries:         2,
 		NoColor:         true,
 		Silent:          true,
-		// Streaming results back to client: httpx OnResult
 		OnResult: func(r httpxrunner.Result) {
 			select {
 			case <-ctx.Done():
@@ -213,7 +226,6 @@ func (s *scanSubdomainServer) ScanAndCheck(
 			default:
 			}
 
-			// Treat only 2xx/3xx responses as alive.
 			isAlive := !r.Failed && r.StatusCode > 0
 			resp := &scan_subdomain.ScanResponse{
 				Subdomain:    r.Input,
@@ -222,47 +234,21 @@ func (s *scanSubdomainServer) ScanAndCheck(
 				Title:        r.Title,
 				Ip:           r.HostIP,
 				Technologies: r.Technologies,
+				ScanId:       scanID,
 			}
 
-			/*
-				Why lock here too?
-				Because OnResult can be called concurrently, and:
-				we’re updating streamErr
-				we’re calling stream.Send, and many gRPC streams are not safe to call concurrently from multiple goroutines.
-				So they serialize sending with a mutex.
-				- Analogy: one microphone on stage — only one speaker at a time.
-
-				Why store streamErr and stop sending later?
-				Once sending fails (client disconnected, network error), continuing to send is pointless and may spam logs.
-			*/
-
-			/*
-				1. Goroutine A locks mu
-				2. checks streamErr (it’s nil)
-				3. does stream.Send(...) → suppose it fails → sets streamErr = errA
-				4. unlocks
-
-				Then later:
-
-				1. Goroutine B locks mu
-				2. checks streamErr (now it’s errA, not nil)
-				3. returns immediately and does not call stream.Send and does not overwrite streamErr
-				So:
-				streamErr becomes non-nil once, on the first failure.
-				After that, everyone stops sending.
-			*/
-			mu.Lock()
+			streamMu.Lock()
 			if streamErr != nil {
-				mu.Unlock()
+				streamMu.Unlock()
 				return
 			}
 			streamErr = stream.Send(resp)
 			if streamErr != nil {
-				mu.Unlock()
-				cancel() // stop workers + stop future work. That makes client disconnect immediately propagate.
+				streamMu.Unlock()
+				cancel()
 				return
 			}
-			mu.Unlock()
+			streamMu.Unlock()
 
 			if persistJobs == nil {
 				return
@@ -281,22 +267,15 @@ func (s *scanSubdomainServer) ScanAndCheck(
 			case <-ctx.Done():
 				return
 			case persistJobs <- task:
-				// queued ()
-				//	This guarantees: once cancelled, you never block trying to enqueue.
-				// enqueue means: To add an item to a queue.
 			default:
 				n := atomic.AddUint64(&dropped, 1)
-
 				now := time.Now().UnixNano()
 				last := atomic.LoadInt64(&lastDropLog)
 
-				if now-last >= int64(2*time.Second) {
-					if atomic.CompareAndSwapInt64(&lastDropLog, last, now) {
-						log.Printf("scan_subdomain: persist queue full, dropped=%d (domain=%s)", n, req.Domain)
-					}
+				if now-last >= int64(2*time.Second) && atomic.CompareAndSwapInt64(&lastDropLog, last, now) {
+					log.Printf("scan_subdomain: persist queue full, dropped=%d (domain=%s)", n, domain)
 				}
 			}
-
 		},
 	}
 	if err := httpxOptions.ValidateOptions(); err != nil {
@@ -307,30 +286,77 @@ func (s *scanSubdomainServer) ScanAndCheck(
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to create httpx runner: %v", err)
 	}
-	defer httpxRunner.Close()
 
-	// Run httpx, then shut down cleanly
-	/*
-		This is orderly shutdown:
-		- run scan
-		- stop job queue
-		- wait for DB workers to finish
-		- return stream error if any
-	*/
+	var httpxCloseOnce sync.Once
+	closeHTTPX := func() {
+		httpxCloseOnce.Do(func() {
+			httpxRunner.Close()
+		})
+	}
+	defer closeHTTPX()
+
+	httpxStopped := make(chan struct{})
+	go func() {
+		select {
+		case <-ctx.Done():
+			closeHTTPX()
+		case <-httpxStopped:
+		}
+	}()
+
 	httpxRunner.RunEnumeration()
+	close(httpxStopped)
 
 	if persistJobs != nil {
 		close(persistJobs)
 		persistWG.Wait()
 	}
 
-	mu.Lock()
+	if err := ctx.Err(); err != nil {
+		return canceledScanError()
+	}
+
+	streamMu.Lock()
 	finalStreamErr := streamErr
-	mu.Unlock()
+	streamMu.Unlock()
 	if finalStreamErr != nil {
+		if isCanceledError(ctx, finalStreamErr) {
+			return canceledScanError()
+		}
 		return status.Errorf(codes.Internal, "stream send failed: %v", finalStreamErr)
 	}
 	return nil
+}
+
+func (s *scanSubdomainServer) CancelScan(
+	ctx context.Context,
+	req *scan_subdomain.CancelScanRequest,
+) (*scan_subdomain.CancelScanResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request cannot be empty")
+	}
+
+	scanID := normalizeScanID(req.ScanId)
+	if scanID == "" {
+		return nil, status.Error(codes.InvalidArgument, "scan_id cannot be empty")
+	}
+
+	scan, ok := lookupActiveScan(scanID)
+	if !ok {
+		return nil, status.Error(codes.NotFound, "scan not found")
+	}
+
+	requestUserID := strings.TrimSpace(req.UserId)
+	if scan.userID != "" && requestUserID != scan.userID {
+		return nil, status.Error(codes.PermissionDenied, "scan belongs to another user")
+	}
+
+	scan.cancelOnce.Do(scan.cancel)
+	return &scan_subdomain.CancelScanResponse{
+		ScanId:    scanID,
+		Cancelled: true,
+		Message:   "cancel requested",
+	}, nil
 }
 
 func getStore() (*database.Store, error) {
@@ -340,7 +366,7 @@ func getStore() (*database.Store, error) {
 	return dbStore, dbInitErr
 }
 
-func getOrCreateDomain(store *database.Store, domainName string, userID string) (int64, error) {
+func getOrCreateDomain(ctx context.Context, store *database.Store, domainName string, userID string) (int64, error) {
 	now := time.Now().UTC()
 	userUUID, err := parseUserID(userID)
 	if err != nil {
@@ -348,7 +374,7 @@ func getOrCreateDomain(store *database.Store, domainName string, userID string) 
 	}
 
 	return store.Queries.UpsertDomain(
-		context.Background(),
+		ctx,
 		dbsqlc.UpsertDomainParams{
 			UserID: userUUID,
 			Name:   domainName,
@@ -370,6 +396,49 @@ func parseUserID(raw string) (uuid.UUID, error) {
 		return uuid.Nil, fmt.Errorf("invalid user_id %q: %w", raw, err)
 	}
 	return id, nil
+}
+
+func registerActiveScan(scanID string, userID string, cancel context.CancelFunc) error {
+	scan := &activeScan{
+		userID: strings.TrimSpace(userID),
+		cancel: cancel,
+	}
+	if _, loaded := activeSubdomainMap.LoadOrStore(scanID, scan); loaded {
+		return status.Error(codes.AlreadyExists, "scan_id is already in use")
+	}
+	return nil
+}
+
+func unregisterActiveScan(scanID string) {
+	activeSubdomainMap.Delete(scanID)
+}
+
+func lookupActiveScan(scanID string) (*activeScan, bool) {
+	value, ok := activeSubdomainMap.Load(scanID)
+	if !ok {
+		return nil, false
+	}
+
+	scan, ok := value.(*activeScan)
+	return scan, ok
+}
+
+func normalizeScanID(raw string) string {
+	return strings.TrimSpace(raw)
+}
+
+func isCanceledError(ctx context.Context, err error) bool {
+	if err == nil {
+		return ctx.Err() != nil
+	}
+
+	return ctx.Err() != nil ||
+		errors.Is(err, context.Canceled) ||
+		errors.Is(err, context.DeadlineExceeded)
+}
+
+func canceledScanError() error {
+	return status.Error(codes.Canceled, "scan canceled")
 }
 
 /*
@@ -452,13 +521,10 @@ func saveScanResult(
 			Valid: true,
 		},
 	})
+	if err != nil {
+		return err
+	}
 
-	// CRITICAL: don't commit if cancelled
-	/*
-		Even if the client cancels during the DB work, our queries might still succeed.
-		Without this check, we'd still Commit() and persist data — which contradicts “when cancel,
-		don’t save anything”.
-	*/
 	if err := ctx.Err(); err != nil {
 		_ = tx.Rollback()
 		return err
