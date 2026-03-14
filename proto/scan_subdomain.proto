@@ -1,26 +1,27 @@
 syntax = "proto3";
 
-package scan_domain;
+package scan_subdomain;
 option go_package = "go-server/gen/scan_subdomain;scan_subdomain";
 
 // service definition
-service SubdomainScanner {
+service SubdomainScannerService {
   // ScanAndCheck returns domain information such as subdomain, status_code, title and so on
   // via ScanResponse
-  rpc ScanAndCheck (ScanRequest) returns (stream ScanResponse);
+  rpc ScanAndCheck (ScanAndCheckRequest) returns (stream ScanAndCheckResponse);
+  // CancelScan allows clients to cancel an ongoing scan by providing the scan_id and user_id. 
+  // It returns a CancelScanResponse indicating whether the cancellation was successful.
   rpc CancelScan (CancelScanRequest) returns (CancelScanResponse);
 }
 
-
 // message for request
-message ScanRequest {
+message ScanAndCheckRequest {
   string domain = 1;
   string user_id = 2;
   string scan_id = 3;
 }
 
 // message for response
-message ScanResponse {
+message ScanAndCheckResponse {
   string subdomain = 1;
   bool is_alive = 2;
   int32 status_code = 3;

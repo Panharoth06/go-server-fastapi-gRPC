@@ -22,7 +22,7 @@ const (
 )
 
 // message for request
-type ScanRequest struct {
+type ScanAndCheckRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Domain        string                 `protobuf:"bytes,1,opt,name=domain,proto3" json:"domain,omitempty"`
 	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
@@ -31,20 +31,20 @@ type ScanRequest struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ScanRequest) Reset() {
-	*x = ScanRequest{}
+func (x *ScanAndCheckRequest) Reset() {
+	*x = ScanAndCheckRequest{}
 	mi := &file_scan_subdomain_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ScanRequest) String() string {
+func (x *ScanAndCheckRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ScanRequest) ProtoMessage() {}
+func (*ScanAndCheckRequest) ProtoMessage() {}
 
-func (x *ScanRequest) ProtoReflect() protoreflect.Message {
+func (x *ScanAndCheckRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_scan_subdomain_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -56,26 +56,26 @@ func (x *ScanRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ScanRequest.ProtoReflect.Descriptor instead.
-func (*ScanRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ScanAndCheckRequest.ProtoReflect.Descriptor instead.
+func (*ScanAndCheckRequest) Descriptor() ([]byte, []int) {
 	return file_scan_subdomain_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *ScanRequest) GetDomain() string {
+func (x *ScanAndCheckRequest) GetDomain() string {
 	if x != nil {
 		return x.Domain
 	}
 	return ""
 }
 
-func (x *ScanRequest) GetUserId() string {
+func (x *ScanAndCheckRequest) GetUserId() string {
 	if x != nil {
 		return x.UserId
 	}
 	return ""
 }
 
-func (x *ScanRequest) GetScanId() string {
+func (x *ScanAndCheckRequest) GetScanId() string {
 	if x != nil {
 		return x.ScanId
 	}
@@ -83,7 +83,7 @@ func (x *ScanRequest) GetScanId() string {
 }
 
 // message for response
-type ScanResponse struct {
+type ScanAndCheckResponse struct {
 	state      protoimpl.MessageState `protogen:"open.v1"`
 	Subdomain  string                 `protobuf:"bytes,1,opt,name=subdomain,proto3" json:"subdomain,omitempty"`
 	IsAlive    bool                   `protobuf:"varint,2,opt,name=is_alive,json=isAlive,proto3" json:"is_alive,omitempty"`
@@ -97,20 +97,20 @@ type ScanResponse struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ScanResponse) Reset() {
-	*x = ScanResponse{}
+func (x *ScanAndCheckResponse) Reset() {
+	*x = ScanAndCheckResponse{}
 	mi := &file_scan_subdomain_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ScanResponse) String() string {
+func (x *ScanAndCheckResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ScanResponse) ProtoMessage() {}
+func (*ScanAndCheckResponse) ProtoMessage() {}
 
-func (x *ScanResponse) ProtoReflect() protoreflect.Message {
+func (x *ScanAndCheckResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_scan_subdomain_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -122,54 +122,54 @@ func (x *ScanResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ScanResponse.ProtoReflect.Descriptor instead.
-func (*ScanResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use ScanAndCheckResponse.ProtoReflect.Descriptor instead.
+func (*ScanAndCheckResponse) Descriptor() ([]byte, []int) {
 	return file_scan_subdomain_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *ScanResponse) GetSubdomain() string {
+func (x *ScanAndCheckResponse) GetSubdomain() string {
 	if x != nil {
 		return x.Subdomain
 	}
 	return ""
 }
 
-func (x *ScanResponse) GetIsAlive() bool {
+func (x *ScanAndCheckResponse) GetIsAlive() bool {
 	if x != nil {
 		return x.IsAlive
 	}
 	return false
 }
 
-func (x *ScanResponse) GetStatusCode() int32 {
+func (x *ScanAndCheckResponse) GetStatusCode() int32 {
 	if x != nil {
 		return x.StatusCode
 	}
 	return 0
 }
 
-func (x *ScanResponse) GetTitle() string {
+func (x *ScanAndCheckResponse) GetTitle() string {
 	if x != nil {
 		return x.Title
 	}
 	return ""
 }
 
-func (x *ScanResponse) GetIp() string {
+func (x *ScanAndCheckResponse) GetIp() string {
 	if x != nil {
 		return x.Ip
 	}
 	return ""
 }
 
-func (x *ScanResponse) GetTechnologies() []string {
+func (x *ScanAndCheckResponse) GetTechnologies() []string {
 	if x != nil {
 		return x.Technologies
 	}
 	return nil
 }
 
-func (x *ScanResponse) GetScanId() string {
+func (x *ScanAndCheckResponse) GetScanId() string {
 	if x != nil {
 		return x.ScanId
 	}
@@ -292,12 +292,12 @@ var File_scan_subdomain_proto protoreflect.FileDescriptor
 
 const file_scan_subdomain_proto_rawDesc = "" +
 	"\n" +
-	"\x14scan_subdomain.proto\x12\vscan_domain\"W\n" +
-	"\vScanRequest\x12\x16\n" +
+	"\x14scan_subdomain.proto\x12\x0escan_subdomain\"_\n" +
+	"\x13ScanAndCheckRequest\x12\x16\n" +
 	"\x06domain\x18\x01 \x01(\tR\x06domain\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x17\n" +
-	"\ascan_id\x18\x03 \x01(\tR\x06scanId\"\xcb\x01\n" +
-	"\fScanResponse\x12\x1c\n" +
+	"\ascan_id\x18\x03 \x01(\tR\x06scanId\"\xd3\x01\n" +
+	"\x14ScanAndCheckResponse\x12\x1c\n" +
 	"\tsubdomain\x18\x01 \x01(\tR\tsubdomain\x12\x19\n" +
 	"\bis_alive\x18\x02 \x01(\bR\aisAlive\x12\x1f\n" +
 	"\vstatus_code\x18\x03 \x01(\x05R\n" +
@@ -312,11 +312,11 @@ const file_scan_subdomain_proto_rawDesc = "" +
 	"\x12CancelScanResponse\x12\x17\n" +
 	"\ascan_id\x18\x01 \x01(\tR\x06scanId\x12\x1c\n" +
 	"\tcancelled\x18\x02 \x01(\bR\tcancelled\x12\x18\n" +
-	"\amessage\x18\x03 \x01(\tR\amessage2\xa8\x01\n" +
-	"\x10SubdomainScanner\x12E\n" +
-	"\fScanAndCheck\x12\x18.scan_domain.ScanRequest\x1a\x19.scan_domain.ScanResponse0\x01\x12M\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage2\xcb\x01\n" +
+	"\x17SubdomainScannerService\x12[\n" +
+	"\fScanAndCheck\x12#.scan_subdomain.ScanAndCheckRequest\x1a$.scan_subdomain.ScanAndCheckResponse0\x01\x12S\n" +
 	"\n" +
-	"CancelScan\x12\x1e.scan_domain.CancelScanRequest\x1a\x1f.scan_domain.CancelScanResponseB-Z+go-server/gen/scan_subdomain;scan_subdomainb\x06proto3"
+	"CancelScan\x12!.scan_subdomain.CancelScanRequest\x1a\".scan_subdomain.CancelScanResponseB-Z+go-server/gen/scan_subdomain;scan_subdomainb\x06proto3"
 
 var (
 	file_scan_subdomain_proto_rawDescOnce sync.Once
@@ -332,16 +332,16 @@ func file_scan_subdomain_proto_rawDescGZIP() []byte {
 
 var file_scan_subdomain_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_scan_subdomain_proto_goTypes = []any{
-	(*ScanRequest)(nil),        // 0: scan_domain.ScanRequest
-	(*ScanResponse)(nil),       // 1: scan_domain.ScanResponse
-	(*CancelScanRequest)(nil),  // 2: scan_domain.CancelScanRequest
-	(*CancelScanResponse)(nil), // 3: scan_domain.CancelScanResponse
+	(*ScanAndCheckRequest)(nil),  // 0: scan_subdomain.ScanAndCheckRequest
+	(*ScanAndCheckResponse)(nil), // 1: scan_subdomain.ScanAndCheckResponse
+	(*CancelScanRequest)(nil),    // 2: scan_subdomain.CancelScanRequest
+	(*CancelScanResponse)(nil),   // 3: scan_subdomain.CancelScanResponse
 }
 var file_scan_subdomain_proto_depIdxs = []int32{
-	0, // 0: scan_domain.SubdomainScanner.ScanAndCheck:input_type -> scan_domain.ScanRequest
-	2, // 1: scan_domain.SubdomainScanner.CancelScan:input_type -> scan_domain.CancelScanRequest
-	1, // 2: scan_domain.SubdomainScanner.ScanAndCheck:output_type -> scan_domain.ScanResponse
-	3, // 3: scan_domain.SubdomainScanner.CancelScan:output_type -> scan_domain.CancelScanResponse
+	0, // 0: scan_subdomain.SubdomainScannerService.ScanAndCheck:input_type -> scan_subdomain.ScanAndCheckRequest
+	2, // 1: scan_subdomain.SubdomainScannerService.CancelScan:input_type -> scan_subdomain.CancelScanRequest
+	1, // 2: scan_subdomain.SubdomainScannerService.ScanAndCheck:output_type -> scan_subdomain.ScanAndCheckResponse
+	3, // 3: scan_subdomain.SubdomainScannerService.CancelScan:output_type -> scan_subdomain.CancelScanResponse
 	2, // [2:4] is the sub-list for method output_type
 	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

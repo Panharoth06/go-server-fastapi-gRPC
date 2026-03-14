@@ -9,7 +9,7 @@ GOOSE_DBSTRING ?= $(DATABASE_URL)
 GOBIN := $(shell go env GOPATH 2>/dev/null)/bin
 export PATH := $(PATH):$(GOBIN)
 
-.PHONY: proto-go proto-py proto sqlc clean check-protoc check-go-plugins check-uv check-goose-db check-goose-name goose-status goose-up goose-down goose-reset goose-create
+.PHONY: proto-go proto-py proto sqlc clean check-protoc check-go-plugins check-uv check-goose-db check-goose-name goose-status goose-up goose-down goose-reset goose-create run-go run-go-sudo-os
 
 # Generate both
 proto: proto-go proto-py
@@ -90,3 +90,11 @@ proto-py: check-protoc check-uv
 clean:
 	rm -rf $(GO_OUT)/*
 	rm -rf $(PY_OUT)/*
+
+# Run Go server
+run-go:
+	cd go-server && go run cmd/main.go
+
+# Run Go server with sudo-enabled OS detection fallback for nmap
+run-go-sudo-os:
+	cd go-server && SCAN_PORT_NMAP_USE_SUDO=true go run cmd/main.go

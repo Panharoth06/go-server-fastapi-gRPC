@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from . import scan_subdomain_pb2 as scan__subdomain__pb2
+from . import scan_port_pb2 as scan__port__pb2
 
 GRPC_GENERATED_VERSION = '1.78.0'
 GRPC_VERSION = grpc.__version__
@@ -18,14 +18,14 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + ' but the generated code in scan_subdomain_pb2_grpc.py depends on'
+        + ' but the generated code in scan_port_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
     )
 
 
-class SubdomainScannerServiceStub(object):
+class ScanPortServiceStub(object):
     """service definition
     """
 
@@ -35,32 +35,32 @@ class SubdomainScannerServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.ScanAndCheck = channel.unary_stream(
-                '/scan_subdomain.SubdomainScannerService/ScanAndCheck',
-                request_serializer=scan__subdomain__pb2.ScanAndCheckRequest.SerializeToString,
-                response_deserializer=scan__subdomain__pb2.ScanAndCheckResponse.FromString,
+        self.ScanPorts = channel.unary_stream(
+                '/scan_port.ScanPortService/ScanPorts',
+                request_serializer=scan__port__pb2.ScanPortsRequest.SerializeToString,
+                response_deserializer=scan__port__pb2.ScanPortsResponse.FromString,
                 _registered_method=True)
         self.CancelScan = channel.unary_unary(
-                '/scan_subdomain.SubdomainScannerService/CancelScan',
-                request_serializer=scan__subdomain__pb2.CancelScanRequest.SerializeToString,
-                response_deserializer=scan__subdomain__pb2.CancelScanResponse.FromString,
+                '/scan_port.ScanPortService/CancelScan',
+                request_serializer=scan__port__pb2.CancelScanRequest.SerializeToString,
+                response_deserializer=scan__port__pb2.CancelScanResponse.FromString,
                 _registered_method=True)
 
 
-class SubdomainScannerServiceServicer(object):
+class ScanPortServiceServicer(object):
     """service definition
     """
 
-    def ScanAndCheck(self, request, context):
-        """ScanAndCheck returns domain information such as subdomain, status_code, title and so on
-        via ScanResponse
+    def ScanPorts(self, request, context):
+        """ScanPorts returns scanned results for given hosts and ports.
+        Each streamed response includes the scan_id used for cancellation.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def CancelScan(self, request, context):
-        """CancelScan allows clients to cancel an ongoing scan by providing the scan_id and user_id. 
+        """CancelScan allows clients to cancel an ongoing scan by providing the scan_id and user_id.
         It returns a CancelScanResponse indicating whether the cancellation was successful.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -68,32 +68,32 @@ class SubdomainScannerServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
 
-def add_SubdomainScannerServiceServicer_to_server(servicer, server):
+def add_ScanPortServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'ScanAndCheck': grpc.unary_stream_rpc_method_handler(
-                    servicer.ScanAndCheck,
-                    request_deserializer=scan__subdomain__pb2.ScanAndCheckRequest.FromString,
-                    response_serializer=scan__subdomain__pb2.ScanAndCheckResponse.SerializeToString,
+            'ScanPorts': grpc.unary_stream_rpc_method_handler(
+                    servicer.ScanPorts,
+                    request_deserializer=scan__port__pb2.ScanPortsRequest.FromString,
+                    response_serializer=scan__port__pb2.ScanPortsResponse.SerializeToString,
             ),
             'CancelScan': grpc.unary_unary_rpc_method_handler(
                     servicer.CancelScan,
-                    request_deserializer=scan__subdomain__pb2.CancelScanRequest.FromString,
-                    response_serializer=scan__subdomain__pb2.CancelScanResponse.SerializeToString,
+                    request_deserializer=scan__port__pb2.CancelScanRequest.FromString,
+                    response_serializer=scan__port__pb2.CancelScanResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'scan_subdomain.SubdomainScannerService', rpc_method_handlers)
+            'scan_port.ScanPortService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('scan_subdomain.SubdomainScannerService', rpc_method_handlers)
+    server.add_registered_method_handlers('scan_port.ScanPortService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
-class SubdomainScannerService(object):
+class ScanPortService(object):
     """service definition
     """
 
     @staticmethod
-    def ScanAndCheck(request,
+    def ScanPorts(request,
             target,
             options=(),
             channel_credentials=None,
@@ -106,9 +106,9 @@ class SubdomainScannerService(object):
         return grpc.experimental.unary_stream(
             request,
             target,
-            '/scan_subdomain.SubdomainScannerService/ScanAndCheck',
-            scan__subdomain__pb2.ScanAndCheckRequest.SerializeToString,
-            scan__subdomain__pb2.ScanAndCheckResponse.FromString,
+            '/scan_port.ScanPortService/ScanPorts',
+            scan__port__pb2.ScanPortsRequest.SerializeToString,
+            scan__port__pb2.ScanPortsResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -133,9 +133,9 @@ class SubdomainScannerService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/scan_subdomain.SubdomainScannerService/CancelScan',
-            scan__subdomain__pb2.CancelScanRequest.SerializeToString,
-            scan__subdomain__pb2.CancelScanResponse.FromString,
+            '/scan_port.ScanPortService/CancelScan',
+            scan__port__pb2.CancelScanRequest.SerializeToString,
+            scan__port__pb2.CancelScanResponse.FromString,
             options,
             channel_credentials,
             insecure,

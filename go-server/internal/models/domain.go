@@ -14,4 +14,5 @@ type Domain struct {
 	CountSubdomains int        `json:"count_subdomains"`
 
 	Subdomains []Subdomain `json:"subdomains,omitempty"`
+	OpenPorts  []OpenPort  `json:"open_ports,omitempty"`
 }

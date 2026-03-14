@@ -19,6 +19,22 @@ type Domain struct {
 	CountSubdomains int32
 }
 
+type DomainOpenPort struct {
+	DomainID   int64
+	OpenPortID int64
+	CreatedAt  time.Time
+}
+
+type OpenPort struct {
+	OpenPortID      int64
+	Port            int32
+	ServiceName     string
+	ServiceVersion  string
+	OperatingSystem string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
 type Subdomain struct {
 	SubdomainID int64
 	DomainID    int64

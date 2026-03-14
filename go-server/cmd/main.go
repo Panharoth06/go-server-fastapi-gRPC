@@ -5,11 +5,13 @@ import (
 	"log"
 	"net"
 
+	scan_port "go-server/gen/scan_port"
 	scan_subdomain "go-server/gen/scan_subdomain"
 	scanner "go-server/gen/scanner"
 	users "go-server/gen/user"
-	scanner_service "go-server/internal/service"	
+	scanner_service "go-server/internal/service"
 	user_service "go-server/internal/service"
+	scan_port_service "go-server/internal/service/scan_port"
 	scan_subdomain_service "go-server/internal/service/scan_subdomain"
 
 	"google.golang.org/grpc"
@@ -32,7 +34,8 @@ func main() {
 	// 3. Register our service implementation
 	users.RegisterUserServiceServer(grpcServer, scanner_service.NewUserServer())
 	scanner.RegisterScanServiceServer(grpcServer, user_service.NewScanServer())
-	scan_subdomain.RegisterSubdomainScannerServer(grpcServer, scan_subdomain_service.NewScanSubdomainServer())
+	scan_subdomain.RegisterSubdomainScannerServiceServer(grpcServer, scan_subdomain_service.NewScanSubdomainServer())
+	scan_port.RegisterScanPortServiceServer(grpcServer, scan_port_service.NewScanPortServer())
 
 	log.Printf("server listening at %v", lis.Addr())
 

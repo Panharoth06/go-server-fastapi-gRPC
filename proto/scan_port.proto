@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package scan_port;
+option go_package = "go-server/gen/scan_port;scan_port";
+
+// service definition
+service ScanPortService {
+  // ScanPorts returns scanned results for given hosts and ports.
+  // Each streamed response includes the scan_id used for cancellation.
+  rpc ScanPorts (ScanPortsRequest) returns (stream ScanPortsResponse);  
+
+  // CancelScan allows clients to cancel an ongoing scan by providing the scan_id and user_id.
+  // It returns a CancelScanResponse indicating whether the cancellation was successful.
+  rpc CancelScan (CancelScanRequest) returns (CancelScanResponse);
+}
+
+message ScanPortsRequest {
+  string scan_id = 1;
+  repeated string hosts = 2;
+  repeated string port = 3;
+  string user_id = 4;
+}
+
+message ScanPortsResponse {
+  string host = 1;
+  string port = 2;
+  string scan_id = 3;
+  string service_name = 4;
+  string service_version = 5;
+  string operating_system = 6;
+}
+
+message CancelScanRequest {
+  string scan_id = 1;
+  string user_id = 2;
+}
+
+message CancelScanResponse {
+  string scan_id = 1;
+  bool cancelled = 2;
+  string message = 3;
+}

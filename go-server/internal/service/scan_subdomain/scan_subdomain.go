@@ -1,4 +1,4 @@
-package service
+package scansubdomain
 
 import (
 	"context"
@@ -17,20 +17,20 @@ import (
 // to the helper files in this package.
 
 type scanSubdomainServer struct {
-	scan_subdomain.UnimplementedSubdomainScannerServer
+	scan_subdomain.UnimplementedSubdomainScannerServiceServer
 }
 
 // NewScanSubdomainServer builds the gRPC service implementation that gets
 // registered by the application bootstrap code.
-func NewScanSubdomainServer() scan_subdomain.SubdomainScannerServer {
+func NewScanSubdomainServer() scan_subdomain.SubdomainScannerServiceServer {
 	return &scanSubdomainServer{}
 }
 
 // ScanAndCheck validates the incoming request, ensures the scan has an ID,
 // registers it as cancellable, and then hands execution to the scan runner.
 func (s *scanSubdomainServer) ScanAndCheck(
-	req *scan_subdomain.ScanRequest,
-	stream scan_subdomain.SubdomainScanner_ScanAndCheckServer,
+	req *scan_subdomain.ScanAndCheckRequest,
+	stream scan_subdomain.SubdomainScannerService_ScanAndCheckServer,
 ) error {
 	if req == nil {
 		return status.Error(codes.InvalidArgument, "request cannot be empty")

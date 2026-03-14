@@ -1,4 +1,4 @@
-package service
+package scansubdomain
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"github.com/projectdiscovery/goflags"
 	httpxrunner "github.com/projectdiscovery/httpx/runner"
 	"github.com/projectdiscovery/subfinder/v2/pkg/resolve"
-	"github.com/projectdiscovery/subfinder/v2/pkg/runner"
+	subfinderrunner"github.com/projectdiscovery/subfinder/v2/pkg/runner"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -41,7 +41,7 @@ type streamSender struct {
 	cancel context.CancelFunc
 	mu     sync.Mutex
 	err    error
-	stream scan_subdomain.SubdomainScanner_ScanAndCheckServer
+	stream scan_subdomain.SubdomainScannerService_ScanAndCheckServer
 }
 
 // runSubdomainScan executes the full scan lifecycle after the RPC layer has
@@ -49,7 +49,7 @@ type streamSender struct {
 func runSubdomainScan(
 	ctx context.Context,
 	cancel context.CancelFunc,
-	stream scan_subdomain.SubdomainScanner_ScanAndCheckServer,
+	stream scan_subdomain.SubdomainScannerService_ScanAndCheckServer,
 	domain string,
 	userID string,
 	scanID string,
@@ -103,7 +103,7 @@ func enumerateSubdomains(ctx context.Context, domain string) ([]string, error) {
 		seen       = map[string]struct{}{}
 	)
 
-	subfinderOpts := &runner.Options{
+	subfinderOpts := &subfinderrunner.Options{
 		Threads:            10,
 		Timeout:            30,
 		MaxEnumerationTime: 10,
@@ -121,7 +121,7 @@ func enumerateSubdomains(ctx context.Context, domain string) ([]string, error) {
 		},
 	}
 
-	subfinderRunner, err := runner.NewRunner(subfinderOpts)
+	subfinderRunner, err := subfinderrunner.NewRunner(subfinderOpts)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create subfinder runner: %v", err)
 	}
@@ -169,7 +169,7 @@ func runHTTPXEnumeration(
 			}
 
 			isAlive := !r.Failed && r.StatusCode > 0
-			sender.send(&scan_subdomain.ScanResponse{
+			sender.send(&scan_subdomain.ScanAndCheckResponse{
 				Subdomain:    r.Input,
 				IsAlive:      isAlive,
 				StatusCode:   int32(r.StatusCode),
@@ -225,7 +225,7 @@ func runHTTPXEnumeration(
 
 // send writes one scan result to the gRPC stream and cancels the scan when the
 // stream can no longer accept more messages.
-func (s *streamSender) send(resp *scan_subdomain.ScanResponse) {
+func (s *streamSender) send(resp *scan_subdomain.ScanAndCheckResponse) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

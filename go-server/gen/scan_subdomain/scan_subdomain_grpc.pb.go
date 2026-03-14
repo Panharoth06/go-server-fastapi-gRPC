@@ -19,37 +19,39 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SubdomainScanner_ScanAndCheck_FullMethodName = "/scan_domain.SubdomainScanner/ScanAndCheck"
-	SubdomainScanner_CancelScan_FullMethodName   = "/scan_domain.SubdomainScanner/CancelScan"
+	SubdomainScannerService_ScanAndCheck_FullMethodName = "/scan_subdomain.SubdomainScannerService/ScanAndCheck"
+	SubdomainScannerService_CancelScan_FullMethodName   = "/scan_subdomain.SubdomainScannerService/CancelScan"
 )
 
-// SubdomainScannerClient is the client API for SubdomainScanner service.
+// SubdomainScannerServiceClient is the client API for SubdomainScannerService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // service definition
-type SubdomainScannerClient interface {
+type SubdomainScannerServiceClient interface {
 	// ScanAndCheck returns domain information such as subdomain, status_code, title and so on
 	// via ScanResponse
-	ScanAndCheck(ctx context.Context, in *ScanRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ScanResponse], error)
+	ScanAndCheck(ctx context.Context, in *ScanAndCheckRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ScanAndCheckResponse], error)
+	// CancelScan allows clients to cancel an ongoing scan by providing the scan_id and user_id.
+	// It returns a CancelScanResponse indicating whether the cancellation was successful.
 	CancelScan(ctx context.Context, in *CancelScanRequest, opts ...grpc.CallOption) (*CancelScanResponse, error)
 }
 
-type subdomainScannerClient struct {
+type subdomainScannerServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewSubdomainScannerClient(cc grpc.ClientConnInterface) SubdomainScannerClient {
-	return &subdomainScannerClient{cc}
+func NewSubdomainScannerServiceClient(cc grpc.ClientConnInterface) SubdomainScannerServiceClient {
+	return &subdomainScannerServiceClient{cc}
 }
 
-func (c *subdomainScannerClient) ScanAndCheck(ctx context.Context, in *ScanRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ScanResponse], error) {
+func (c *subdomainScannerServiceClient) ScanAndCheck(ctx context.Context, in *ScanAndCheckRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ScanAndCheckResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &SubdomainScanner_ServiceDesc.Streams[0], SubdomainScanner_ScanAndCheck_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &SubdomainScannerService_ServiceDesc.Streams[0], SubdomainScannerService_ScanAndCheck_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[ScanRequest, ScanResponse]{ClientStream: stream}
+	x := &grpc.GenericClientStream[ScanAndCheckRequest, ScanAndCheckResponse]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -60,110 +62,113 @@ func (c *subdomainScannerClient) ScanAndCheck(ctx context.Context, in *ScanReque
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type SubdomainScanner_ScanAndCheckClient = grpc.ServerStreamingClient[ScanResponse]
+type SubdomainScannerService_ScanAndCheckClient = grpc.ServerStreamingClient[ScanAndCheckResponse]
 
-func (c *subdomainScannerClient) CancelScan(ctx context.Context, in *CancelScanRequest, opts ...grpc.CallOption) (*CancelScanResponse, error) {
+func (c *subdomainScannerServiceClient) CancelScan(ctx context.Context, in *CancelScanRequest, opts ...grpc.CallOption) (*CancelScanResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CancelScanResponse)
-	err := c.cc.Invoke(ctx, SubdomainScanner_CancelScan_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, SubdomainScannerService_CancelScan_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// SubdomainScannerServer is the server API for SubdomainScanner service.
-// All implementations must embed UnimplementedSubdomainScannerServer
+// SubdomainScannerServiceServer is the server API for SubdomainScannerService service.
+// All implementations must embed UnimplementedSubdomainScannerServiceServer
 // for forward compatibility.
 //
 // service definition
-type SubdomainScannerServer interface {
+type SubdomainScannerServiceServer interface {
 	// ScanAndCheck returns domain information such as subdomain, status_code, title and so on
 	// via ScanResponse
-	ScanAndCheck(*ScanRequest, grpc.ServerStreamingServer[ScanResponse]) error
+	ScanAndCheck(*ScanAndCheckRequest, grpc.ServerStreamingServer[ScanAndCheckResponse]) error
+	// CancelScan allows clients to cancel an ongoing scan by providing the scan_id and user_id.
+	// It returns a CancelScanResponse indicating whether the cancellation was successful.
 	CancelScan(context.Context, *CancelScanRequest) (*CancelScanResponse, error)
-	mustEmbedUnimplementedSubdomainScannerServer()
+	mustEmbedUnimplementedSubdomainScannerServiceServer()
 }
 
-// UnimplementedSubdomainScannerServer must be embedded to have
+// UnimplementedSubdomainScannerServiceServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedSubdomainScannerServer struct{}
+type UnimplementedSubdomainScannerServiceServer struct{}
 
-func (UnimplementedSubdomainScannerServer) ScanAndCheck(*ScanRequest, grpc.ServerStreamingServer[ScanResponse]) error {
+func (UnimplementedSubdomainScannerServiceServer) ScanAndCheck(*ScanAndCheckRequest, grpc.ServerStreamingServer[ScanAndCheckResponse]) error {
 	return status.Error(codes.Unimplemented, "method ScanAndCheck not implemented")
 }
-func (UnimplementedSubdomainScannerServer) CancelScan(context.Context, *CancelScanRequest) (*CancelScanResponse, error) {
+func (UnimplementedSubdomainScannerServiceServer) CancelScan(context.Context, *CancelScanRequest) (*CancelScanResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CancelScan not implemented")
 }
-func (UnimplementedSubdomainScannerServer) mustEmbedUnimplementedSubdomainScannerServer() {}
-func (UnimplementedSubdomainScannerServer) testEmbeddedByValue()                          {}
+func (UnimplementedSubdomainScannerServiceServer) mustEmbedUnimplementedSubdomainScannerServiceServer() {
+}
+func (UnimplementedSubdomainScannerServiceServer) testEmbeddedByValue() {}
 
-// UnsafeSubdomainScannerServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to SubdomainScannerServer will
+// UnsafeSubdomainScannerServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to SubdomainScannerServiceServer will
 // result in compilation errors.
-type UnsafeSubdomainScannerServer interface {
-	mustEmbedUnimplementedSubdomainScannerServer()
+type UnsafeSubdomainScannerServiceServer interface {
+	mustEmbedUnimplementedSubdomainScannerServiceServer()
 }
 
-func RegisterSubdomainScannerServer(s grpc.ServiceRegistrar, srv SubdomainScannerServer) {
-	// If the following call panics, it indicates UnimplementedSubdomainScannerServer was
+func RegisterSubdomainScannerServiceServer(s grpc.ServiceRegistrar, srv SubdomainScannerServiceServer) {
+	// If the following call panics, it indicates UnimplementedSubdomainScannerServiceServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
 	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
 		t.testEmbeddedByValue()
 	}
-	s.RegisterService(&SubdomainScanner_ServiceDesc, srv)
+	s.RegisterService(&SubdomainScannerService_ServiceDesc, srv)
 }
 
-func _SubdomainScanner_ScanAndCheck_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(ScanRequest)
+func _SubdomainScannerService_ScanAndCheck_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ScanAndCheckRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(SubdomainScannerServer).ScanAndCheck(m, &grpc.GenericServerStream[ScanRequest, ScanResponse]{ServerStream: stream})
+	return srv.(SubdomainScannerServiceServer).ScanAndCheck(m, &grpc.GenericServerStream[ScanAndCheckRequest, ScanAndCheckResponse]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type SubdomainScanner_ScanAndCheckServer = grpc.ServerStreamingServer[ScanResponse]
+type SubdomainScannerService_ScanAndCheckServer = grpc.ServerStreamingServer[ScanAndCheckResponse]
 
-func _SubdomainScanner_CancelScan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _SubdomainScannerService_CancelScan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CancelScanRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SubdomainScannerServer).CancelScan(ctx, in)
+		return srv.(SubdomainScannerServiceServer).CancelScan(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: SubdomainScanner_CancelScan_FullMethodName,
+		FullMethod: SubdomainScannerService_CancelScan_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SubdomainScannerServer).CancelScan(ctx, req.(*CancelScanRequest))
+		return srv.(SubdomainScannerServiceServer).CancelScan(ctx, req.(*CancelScanRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// SubdomainScanner_ServiceDesc is the grpc.ServiceDesc for SubdomainScanner service.
+// SubdomainScannerService_ServiceDesc is the grpc.ServiceDesc for SubdomainScannerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var SubdomainScanner_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "scan_domain.SubdomainScanner",
-	HandlerType: (*SubdomainScannerServer)(nil),
+var SubdomainScannerService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "scan_subdomain.SubdomainScannerService",
+	HandlerType: (*SubdomainScannerServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "CancelScan",
-			Handler:    _SubdomainScanner_CancelScan_Handler,
+			Handler:    _SubdomainScannerService_CancelScan_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "ScanAndCheck",
-			Handler:       _SubdomainScanner_ScanAndCheck_Handler,
+			Handler:       _SubdomainScannerService_ScanAndCheck_Handler,
 			ServerStreams: true,
 		},
 	},

@@ -3,11 +3,42 @@
 This is the core execution engine for the pentest automation tool. It handles incoming gRPC requests to execute security tools.
 
 ## 🛠 Features
-- **SubdomainScanner**: Executes automated security tools (subfinder | httpx).
+- **Subdomain scan**: Uses `subfinder` for discovery and `httpx` to probe live hosts.
+- **Port scan**: Uses `naabu` for port discovery, then enriches results with direct `nmap` service/version detection.
+- **Cancellation support**: Active scans can be cancelled through gRPC.
+- **Persistence**: Stores scan results in Postgres using `sqlc` queries and embedded `goose` migrations.
 
 ## 🚀 Getting Started
-2. **Run Server**: `go run cmd/main.go`
-   - Listens on: `localhost:50051`
+1. Copy `.env.example` to `.env` and adjust the database connection values if needed.
+2. Start the server from this directory:
+
+```bash
+go run cmd/main.go
+```
+
+The server listens on `localhost:50051`.
+
+From the repository root you can also use:
+- `make run-go`
+- `make run-go-sudo-os`
+
+## 🔎 Port Scan Notes
+The port-scan service works in two stages:
+- `naabu` finds open ports.
+- `nmap` enriches those ports with service and version details.
+
+Host OS detection is optional and requires elevated Nmap execution. To enable the sudo fallback:
+
+1. Set `SCAN_PORT_NMAP_USE_SUDO=true` in `.env`.
+2. Grant the server user passwordless sudo for `nmap`, for example:
+
+```sudoers
+your_user ALL=(root) NOPASSWD: /usr/bin/nmap
+```
+
+3. Restart the Go server.
+
+If sudo is not configured, scans still run and service/version detection still works, but `operating_system` may remain empty.
 
 ## 🗄 Database
 - Uses `goose` for schema migrations.
@@ -29,3 +60,4 @@ Run from repository root:
 ## 📁 Structure
 - `gen/`: Generated gRPC code.
 - `internal/service/`: Implementation of the gRPC handlers.
+- `internal/database/`: Database connection, migrations, queries, and generated `sqlc` code.

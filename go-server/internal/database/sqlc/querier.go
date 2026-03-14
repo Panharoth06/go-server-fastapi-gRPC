@@ -9,9 +9,11 @@ import (
 )
 
 type Querier interface {
+	LinkDomainOpenPort(ctx context.Context, arg LinkDomainOpenPortParams) error
 	LinkSubdomainTechnology(ctx context.Context, arg LinkSubdomainTechnologyParams) error
 	RefreshDomainScanStats(ctx context.Context, arg RefreshDomainScanStatsParams) error
 	UpsertDomain(ctx context.Context, arg UpsertDomainParams) (int64, error)
+	UpsertOpenPort(ctx context.Context, arg UpsertOpenPortParams) (int64, error)
 	UpsertSubdomain(ctx context.Context, arg UpsertSubdomainParams) (int64, error)
 	UpsertTechnology(ctx context.Context, arg UpsertTechnologyParams) (int64, error)
 }

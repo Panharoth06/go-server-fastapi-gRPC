@@ -1,20 +1,22 @@
 import os
-import grpc 
+import grpc
 
 from app.gen import scan_subdomain_pb2, scan_subdomain_pb2_grpc
 
+
 class ScanSubdomainClient:
     def __init__(self):
-        # Use the address where your Go server is running
         grpc_addr = os.getenv("GRPC_SERVER_ADDR", "localhost:50051")
         self.channel = grpc.insecure_channel(grpc_addr)
-        # Match the service name defined in your .proto file
-        self.stub = scan_subdomain_pb2_grpc.SubdomainScannerStub(self.channel)
-        
+        self.stub = scan_subdomain_pb2_grpc.SubdomainScannerServiceStub(self.channel)
+
     def scan_and_check(self, domain: str, user_id: str = "", scan_id: str = ""):
-        request = scan_subdomain_pb2.ScanRequest(domain=domain, user_id=user_id, scan_id=scan_id)
-        
-        # This returns an iterator. Each 'response' is a ScanResponse object.
+        request = scan_subdomain_pb2.ScanAndCheckRequest(
+            domain=domain,
+            user_id=user_id,
+            scan_id=scan_id,
+        )
+
         responses = self.stub.ScanAndCheck(request)
         for response in responses:
             yield {
@@ -35,6 +37,7 @@ class ScanSubdomainClient:
             "cancelled": response.cancelled,
             "message": response.message,
         }
+
 
 scanner_client = ScanSubdomainClient()
 
