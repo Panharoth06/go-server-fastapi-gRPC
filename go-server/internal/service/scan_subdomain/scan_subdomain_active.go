@@ -29,6 +29,7 @@ func registerActiveScan(scanID string, userID string, cancel context.CancelFunc)
 		userID: strings.TrimSpace(userID),
 		cancel: cancel,
 	}
+	// Reject duplicate IDs so one active scan maps to one registry entry.
 	if _, loaded := activeSubdomainMap.LoadOrStore(scanID, scan); loaded {
 		return status.Error(codes.AlreadyExists, "scan_id is already in use")
 	}
@@ -45,6 +46,7 @@ func unregisterActiveScan(scanID string) {
 // still running.
 func lookupActiveScan(scanID string) (*activeScan, bool) {
 	value, ok := activeSubdomainMap.Load(scanID)
+	// Missing key means scan is not currently active.
 	if !ok {
 		return nil, false
 	}
@@ -62,10 +64,12 @@ func normalizeScanID(raw string) string {
 // isCanceledError reports whether the error path should be treated as a scan
 // cancellation, including both explicit context cancellation and deadline exit.
 func isCanceledError(ctx context.Context, err error) bool {
+	// With no explicit error, rely on context cancellation state.
 	if err == nil {
 		return ctx.Err() != nil
 	}
 
+	// Treat canceled/deadline failures as expected cancellation paths.
 	return ctx.Err() != nil ||
 		errors.Is(err, context.Canceled) ||
 		errors.Is(err, context.DeadlineExceeded)

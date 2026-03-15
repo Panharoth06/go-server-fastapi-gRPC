@@ -13,7 +13,7 @@ type server struct {
 	users.UnimplementedUserServiceServer
 }
 
-// NewServer is a constructor function that returns a new instance of our gRPC server.
+// NewUserServer returns a new UserService gRPC handler.
 func NewUserServer() users.UserServiceServer {
 	return &server{}
 }
@@ -22,8 +22,7 @@ func NewUserServer() users.UserServiceServer {
 // req: The data sent by the FastAPI client (contains UserId).
 // res: The data we send back (Name and Email).
 func (s *server) GetUser(ctx context.Context, req *users.UserRequest) (*users.UserResponse, error) {
-	// Current logic: Returns a hardcoded response.
-	// Future logic: This is where we would call our Database/Repository layer.
+	// This is a placeholder response until user storage is wired in.
 	return &users.UserResponse{
 		Name:  "Koko",
 		Email: "koko@gmail.com",

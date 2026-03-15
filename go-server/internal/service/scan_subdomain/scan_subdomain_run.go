@@ -12,7 +12,7 @@ import (
 	"github.com/projectdiscovery/goflags"
 	httpxrunner "github.com/projectdiscovery/httpx/runner"
 	"github.com/projectdiscovery/subfinder/v2/pkg/resolve"
-	subfinderrunner"github.com/projectdiscovery/subfinder/v2/pkg/runner"
+	subfinderrunner "github.com/projectdiscovery/subfinder/v2/pkg/runner"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -58,11 +58,13 @@ func runSubdomainScan(
 	if err != nil {
 		return err
 	}
+	// No discovered subdomains means no probe/stream work is needed.
 	if len(subdomains) == 0 {
 		return nil
 	}
 
 	store, err := getStore()
+	// Continue scanning even if persistence is unavailable.
 	if err != nil {
 		log.Printf("scan_subdomain: database unavailable, skipping persistence: %v", err)
 		store = nil
@@ -80,10 +82,12 @@ func runSubdomainScan(
 		return err
 	}
 
+	// Normalize post-run cancellation checks.
 	if err := ctx.Err(); err != nil {
 		return canceledScanError()
 	}
 
+	// Surface stream transport failures as consistent gRPC errors.
 	if err := sender.finalError(); err != nil {
 		if isCanceledError(ctx, err) {
 			return canceledScanError()
@@ -108,13 +112,15 @@ func enumerateSubdomains(ctx context.Context, domain string) ([]string, error) {
 		Timeout:            30,
 		MaxEnumerationTime: 10,
 		ResultCallback: func(result *resolve.HostEntry) {
+			// Ignore empty callback values from providers.
 			if result == nil || result.Host == "" {
 				return
 			}
 
 			mu.Lock()
+			// Keep first occurrence only to avoid duplicate probing.
 			if _, ok := seen[result.Host]; !ok {
-				seen[result.Host] = struct{}{} //prevent duplicates from multiple subfinder modules
+				seen[result.Host] = struct{}{} // Prevent duplicates from multiple subfinder modules.
 				subdomains = append(subdomains, result.Host)
 			}
 			mu.Unlock()
@@ -122,17 +128,20 @@ func enumerateSubdomains(ctx context.Context, domain string) ([]string, error) {
 	}
 
 	subfinderRunner, err := subfinderrunner.NewRunner(subfinderOpts)
+	// Runner creation failure is an internal service issue.
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to create subfinder runner: %v", err)
 	}
 
 	if _, err := subfinderRunner.EnumerateSingleDomainWithCtx(ctx, domain, nil); err != nil {
+		// Convert cancellation-like errors to canonical canceled status.
 		if isCanceledError(ctx, err) {
 			return nil, canceledScanError()
 		}
 		return nil, status.Errorf(codes.Internal, "subfinder failed: %v", err)
 	}
 
+	// Scan may finish after cancellation; return canceled in that case.
 	if err := ctx.Err(); err != nil {
 		return nil, canceledScanError()
 	}
@@ -163,11 +172,13 @@ func runHTTPXEnumeration(
 		Silent:          true,
 		OnResult: func(r httpxrunner.Result) {
 			select {
+			// Stop callback work as soon as context is canceled.
 			case <-ctx.Done():
 				return
 			default:
 			}
 
+			// A positive status code from a non-failed probe means reachable target.
 			isAlive := !r.Failed && r.StatusCode > 0
 			sender.send(&scan_subdomain.ScanAndCheckResponse{
 				Subdomain:    r.Input,
@@ -178,6 +189,7 @@ func runHTTPXEnumeration(
 				Technologies: r.Technologies,
 				ScanId:       scanID,
 			})
+			// Stop queuing persistence once stream send has failed.
 			if sender.finalError() != nil {
 				return
 			}
@@ -192,11 +204,13 @@ func runHTTPXEnumeration(
 			})
 		},
 	}
+	// Validate options before creating the runner.
 	if err := httpxOptions.ValidateOptions(); err != nil {
 		return status.Errorf(codes.Internal, "invalid httpx options: %v", err)
 	}
 
 	httpxRunner, err := httpxrunner.New(httpxOptions)
+	// Runner creation failure is an internal service issue.
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to create httpx runner: %v", err)
 	}
@@ -212,6 +226,7 @@ func runHTTPXEnumeration(
 	httpxStopped := make(chan struct{})
 	go func() {
 		select {
+		// On cancellation, close the runner to stop network work quickly.
 		case <-ctx.Done():
 			closeHTTPX()
 		case <-httpxStopped:
@@ -229,11 +244,13 @@ func (s *streamSender) send(resp *scan_subdomain.ScanAndCheckResponse) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	// Once a send error exists, ignore later responses.
 	if s.err != nil {
 		return
 	}
 
 	s.err = s.stream.Send(resp)
+	// Trigger cancellation so upstream scan work stops promptly.
 	if s.err != nil {
 		s.cancel()
 	}
@@ -268,15 +285,18 @@ func newScanPersistence(
 		ctx:    ctx,
 		domain: domain,
 	}
+	// Persistence is optional; nil store keeps scan stream-only.
 	if store == nil {
 		return p
 	}
 
 	p.jobs = make(chan scanResultPersistTask, persistQueueSize)
 	workerCount := persistWorkerSize
+	// Avoid creating more workers than expected work items.
 	if subdomainCount < workerCount {
 		workerCount = subdomainCount
 	}
+	// Always keep at least one worker when queueing is enabled.
 	if workerCount < 1 {
 		workerCount = 1
 	}
@@ -288,14 +308,17 @@ func newScanPersistence(
 			defer p.wg.Done()
 			for {
 				select {
+				// Stop worker when parent context is canceled.
 				case <-ctx.Done():
 					return
 				case task, ok := <-p.jobs:
+					// Closed queue means no more tasks to persist.
 					if !ok {
 						return
 					}
 
 					domainID, err := ensureDomain()
+					// Skip this task when domain upsert/lookup fails.
 					if err != nil {
 						log.Printf("scan_subdomain: ensure domain failed (%s): %v", domain, err)
 						continue
@@ -312,6 +335,7 @@ func newScanPersistence(
 						task.isAlive,
 						task.technologies,
 					); err != nil && !isCanceledError(ctx, err) {
+						// Log DB errors but keep scan pipeline alive.
 						log.Printf("scan_subdomain: save result failed (%s): %v", task.subdomain, err)
 					}
 				}
@@ -325,15 +349,18 @@ func newScanPersistence(
 // enqueue attempts to queue a persistence task without blocking scan progress;
 // when the queue is full it drops work and rate-limits the warning log.
 func (p *scanPersistence) enqueue(task scanResultPersistTask) {
+	// No queue means persistence was disabled for this run.
 	if p.jobs == nil {
 		return
 	}
 
 	select {
+	// Skip enqueue after cancellation.
 	case <-p.ctx.Done():
 		return
 	case p.jobs <- task:
 	default:
+		// Queue full: drop task to avoid blocking request stream.
 		n := atomic.AddUint64(&p.dropped, 1)
 		now := time.Now().UnixNano()
 		last := atomic.LoadInt64(&p.lastDropLog)
@@ -347,6 +374,7 @@ func (p *scanPersistence) enqueue(task scanResultPersistTask) {
 // closeAndWait closes the background queue and waits for persistence workers
 // to finish draining accepted tasks.
 func (p *scanPersistence) closeAndWait() {
+	// Nothing to close when persistence was disabled.
 	if p.jobs == nil {
 		return
 	}

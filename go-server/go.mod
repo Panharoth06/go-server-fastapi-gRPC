@@ -3,6 +3,7 @@ module go-server
 go 1.25.2
 
 require (
+	github.com/Ullaakut/nmap/v3 v3.0.6
 	github.com/pressly/goose/v3 v3.26.0
 	github.com/projectdiscovery/goflags v0.1.74
 	github.com/projectdiscovery/httpx v1.8.1
@@ -13,7 +14,6 @@ require (
 )
 
 require (
-	github.com/Ullaakut/nmap/v3 v3.0.6 // indirect
 	github.com/gopacket/gopacket v1.2.0 // indirect
 	github.com/mfridman/interpolate v0.0.2 // indirect
 	github.com/projectdiscovery/ipranger v0.0.53 // indirect

@@ -30,6 +30,7 @@ func registerActiveScanPort(scanID string, userID string, cancel context.CancelC
 		cancel: cancel,
 	}
 
+	// Reject duplicate IDs so one cancel signal maps to one running scan.
 	if _, loaded := activeScanPortMap.LoadOrStore(scanID, scan); loaded {
 		return status.Error(codes.AlreadyExists, "scan_id is already in use")
 	}
@@ -47,6 +48,7 @@ func unregisterActiveScanPort(scanID string) {
 func lookupActiveScanPort(scanID string) (*activeScan, bool) {
 	value, ok := activeScanPortMap.Load(scanID)
 
+	// Missing key means the scan already finished or never existed.
 	if !ok {
 		return nil, false
 	}
@@ -55,18 +57,23 @@ func lookupActiveScanPort(scanID string) (*activeScan, bool) {
 	return scan, ok
 }
 
+// isCanceledError normalizes cancellation checks across stream and runner errors.
 func isCanceledError(ctx context.Context, err error) bool {
+	// When no explicit error is present, rely on context state only.
 	if err == nil {
 		return ctx.Err() != nil
 	}
 
+	// Treat explicit canceled/deadline errors as scan cancellation.
 	return ctx.Err() != nil || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
 }
 
+// canceledScanError returns the canonical gRPC cancellation response.
 func canceledScanError() error {
 	return status.Error(codes.Canceled, "scan canceled")
 }
 
+// normalizeScanID keeps scan key comparisons stable across requests.
 func normalizeScanID(raw string) string {
 	return strings.TrimSpace(raw)
 }

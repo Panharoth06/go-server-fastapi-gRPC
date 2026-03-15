@@ -62,6 +62,7 @@ func getStore() (scanResultStore, error) {
 	dbInitOnce.Do(func() {
 		dbStore, dbInitErr = database.ConnectAndMigrate()
 	})
+	// Return the init error when the store could not be created.
 	if dbStore == nil {
 		return nil, dbInitErr
 	}
@@ -114,15 +115,18 @@ func newPortScanPersistence(
 		ctx:  ctx,
 		host: host,
 	}
+	// Persistence is optional; nil store means scan-only mode.
 	if store == nil {
 		return p
 	}
 
 	p.jobs = make(chan openPortPersistTask, portPersistQueueSize)
 	workerCount := portPersistWorkerSize
+	// Avoid creating more workers than expected tasks.
 	if expectedResultCount < workerCount {
 		workerCount = expectedResultCount
 	}
+	// Always keep at least one worker when queue is enabled.
 	if workerCount < 1 {
 		workerCount = 1
 	}
@@ -134,19 +138,23 @@ func newPortScanPersistence(
 			defer p.wg.Done()
 			for {
 				select {
+				// Stop worker when request context is canceled.
 				case <-ctx.Done():
 					return
 				case task, ok := <-p.jobs:
+					// Channel close means no more tasks to process.
 					if !ok {
 						return
 					}
 
 					domainID, err := ensureDomain()
+					// Skip persistence for this task if host/domain lookup failed.
 					if err != nil {
 						log.Printf("scan_port: ensure host failed (%s): %v", host, err)
 						continue
 					}
 
+					// Persist failures are logged but do not stop scanning.
 					if err := saveOpenPortResult(ctx, store, domainID, task); err != nil && !isCanceledError(ctx, err) {
 						log.Printf("scan_port: save result failed (%s:%d): %v", host, task.port, err)
 					}
@@ -161,15 +169,18 @@ func newPortScanPersistence(
 // enqueue attempts to queue a persistence task without blocking scan progress;
 // when the queue is full it drops work and rate-limits the warning log.
 func (p *portScanPersistence) enqueue(task openPortPersistTask) {
+	// No queue means persistence was disabled for this run.
 	if p.jobs == nil {
 		return
 	}
 
 	select {
+	// Skip enqueue after cancellation.
 	case <-p.ctx.Done():
 		return
 	case p.jobs <- task:
 	default:
+		// Queue is full; drop task to keep scan stream responsive.
 		n := atomic.AddUint64(&p.dropped, 1)
 		now := time.Now().UnixNano()
 		last := atomic.LoadInt64(&p.lastDropLog)
@@ -183,6 +194,7 @@ func (p *portScanPersistence) enqueue(task openPortPersistTask) {
 // closeAndWait closes the background queue and waits for persistence workers
 // to finish draining accepted tasks.
 func (p *portScanPersistence) closeAndWait() {
+	// No queue means there are no background workers to join.
 	if p.jobs == nil {
 		return
 	}
@@ -195,6 +207,7 @@ func (p *portScanPersistence) closeAndWait() {
 func getOrCreateDomain(ctx context.Context, store scanResultStore, host string, userID string) (int64, error) {
 	now := time.Now().UTC()
 	userUUID, err := parseUserID(userID)
+	// Reject malformed UUIDs before hitting the database.
 	if err != nil {
 		return 0, err
 	}
@@ -215,11 +228,13 @@ func getOrCreateDomain(ctx context.Context, store scanResultStore, host string, 
 // parseUserID converts the optional user identifier into a UUID while allowing
 // empty values for anonymous or system-triggered scans.
 func parseUserID(raw string) (uuid.UUID, error) {
+	// Empty user ID is allowed for system/anonymous scans.
 	if strings.TrimSpace(raw) == "" {
 		return uuid.Nil, nil
 	}
 
 	id, err := uuid.Parse(raw)
+	// Invalid UUID format is returned as a wrapped validation error.
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("invalid user_id %q: %w", raw, err)
 	}
@@ -235,6 +250,7 @@ func saveOpenPortResult(
 	task openPortPersistTask,
 ) (err error) {
 	tx, err := store.GetDB().BeginTx(ctx, nil)
+	// If transaction cannot start, persistence cannot continue.
 	if err != nil {
 		return err
 	}
@@ -252,6 +268,7 @@ func saveOpenPortResult(
 		ServiceVersion:  task.serviceVersion,
 		OperatingSystem: task.operatingSystem,
 	})
+	// Upsert must succeed before relation rows can be created.
 	if err != nil {
 		return err
 	}
@@ -260,10 +277,12 @@ func saveOpenPortResult(
 		DomainID:   domainID,
 		OpenPortID: openPortID,
 	})
+	// Relation link failure aborts the whole transaction.
 	if err != nil {
 		return err
 	}
 
+	// Avoid committing data when the request is already canceled.
 	if err := ctx.Err(); err != nil {
 		_ = tx.Rollback()
 		return err

@@ -39,6 +39,7 @@ func getStore() (scanResultStore, error) {
 	dbInitOnce.Do(func() {
 		dbStore, dbInitErr = database.ConnectAndMigrate()
 	})
+	// Return init error when store creation failed.
 	if dbStore == nil {
 		return nil, dbInitErr
 	}
@@ -83,6 +84,7 @@ func newDomainResolver(
 func getOrCreateDomain(ctx context.Context, store scanResultStore, domainName string, userID string) (int64, error) {
 	now := time.Now().UTC()
 	userUUID, err := parseUserID(userID)
+	// Reject malformed user IDs before DB upsert.
 	if err != nil {
 		return 0, err
 	}
@@ -103,11 +105,13 @@ func getOrCreateDomain(ctx context.Context, store scanResultStore, domainName st
 // parseUserID converts the optional user identifier into a UUID while allowing
 // empty values for anonymous or system-triggered scans.
 func parseUserID(raw string) (uuid.UUID, error) {
+	// Empty user ID is allowed for system/anonymous scans.
 	if strings.TrimSpace(raw) == "" {
 		return uuid.Nil, nil
 	}
 
 	id, err := uuid.Parse(raw)
+	// Wrap parse errors to make invalid input easy to diagnose.
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("invalid user_id %q: %w", raw, err)
 	}
@@ -128,6 +132,7 @@ func saveScanResult(
 	technologies []string,
 ) (err error) {
 	tx, err := store.GetDB().BeginTx(ctx, nil)
+	// If transaction start fails, no persistence can proceed.
 	if err != nil {
 		return err
 	}
@@ -147,12 +152,14 @@ func saveScanResult(
 		Ip:         ip,
 		IsAlive:    isAlive,
 	})
+	// Subdomain row must exist before linking technologies.
 	if err != nil {
 		return err
 	}
 
 	for _, rawTech := range technologies {
 		name, version := parseTechnology(rawTech)
+		// Skip blank technology names after normalization.
 		if name == "" {
 			continue
 		}
@@ -160,6 +167,7 @@ func saveScanResult(
 			Name:    name,
 			Version: version,
 		})
+		// Technology upsert failure aborts transaction.
 		if err != nil {
 			return err
 		}
@@ -168,6 +176,7 @@ func saveScanResult(
 			SubdomainID:  subdomainID,
 			TechnologyID: technologyID,
 		})
+		// Link failure aborts transaction to avoid partial relations.
 		if err != nil {
 			return err
 		}
@@ -181,10 +190,12 @@ func saveScanResult(
 			Valid: true,
 		},
 	})
+	// Stats refresh failure should roll back all writes.
 	if err != nil {
 		return err
 	}
 
+	// Avoid commit if request was canceled during persistence.
 	if err := ctx.Err(); err != nil {
 		_ = tx.Rollback()
 		return err
@@ -198,11 +209,13 @@ func saveScanResult(
 // columns used by the technology tables.
 func parseTechnology(raw string) (string, string) {
 	clean := strings.TrimSpace(raw)
+	// Ignore empty/whitespace technology values.
 	if clean == "" {
 		return "", ""
 	}
 
 	parts := strings.SplitN(clean, ":", 2)
+	// Keep optional version when provider emits "name:version".
 	if len(parts) == 2 {
 		return strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
 	}

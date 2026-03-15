@@ -32,7 +32,7 @@ class PortScanRequestSchema(BaseModel):
     hosts: list[str]
     ports: list[str] | None = Field(
         default=None,
-        description="Optional port list. When omitted or null, the backend scans the top 100 ports.",
+        description="Optional port list. When omitted or null, the backend scans the top 1000 ports.",
     )
 
 
