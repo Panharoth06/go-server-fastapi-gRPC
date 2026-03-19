@@ -82,6 +82,66 @@ func (x *ScanAndCheckRequest) GetScanId() string {
 	return ""
 }
 
+type ScanAndCheckTerminalRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Domain        string                 `protobuf:"bytes,1,opt,name=domain,proto3" json:"domain,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	ScanId        string                 `protobuf:"bytes,3,opt,name=scan_id,json=scanId,proto3" json:"scan_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ScanAndCheckTerminalRequest) Reset() {
+	*x = ScanAndCheckTerminalRequest{}
+	mi := &file_scan_subdomain_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ScanAndCheckTerminalRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScanAndCheckTerminalRequest) ProtoMessage() {}
+
+func (x *ScanAndCheckTerminalRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_scan_subdomain_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScanAndCheckTerminalRequest.ProtoReflect.Descriptor instead.
+func (*ScanAndCheckTerminalRequest) Descriptor() ([]byte, []int) {
+	return file_scan_subdomain_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ScanAndCheckTerminalRequest) GetDomain() string {
+	if x != nil {
+		return x.Domain
+	}
+	return ""
+}
+
+func (x *ScanAndCheckTerminalRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *ScanAndCheckTerminalRequest) GetScanId() string {
+	if x != nil {
+		return x.ScanId
+	}
+	return ""
+}
+
 // message for response
 type ScanAndCheckResponse struct {
 	state      protoimpl.MessageState `protogen:"open.v1"`
@@ -99,7 +159,7 @@ type ScanAndCheckResponse struct {
 
 func (x *ScanAndCheckResponse) Reset() {
 	*x = ScanAndCheckResponse{}
-	mi := &file_scan_subdomain_proto_msgTypes[1]
+	mi := &file_scan_subdomain_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -111,7 +171,7 @@ func (x *ScanAndCheckResponse) String() string {
 func (*ScanAndCheckResponse) ProtoMessage() {}
 
 func (x *ScanAndCheckResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_scan_subdomain_proto_msgTypes[1]
+	mi := &file_scan_subdomain_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -124,7 +184,7 @@ func (x *ScanAndCheckResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ScanAndCheckResponse.ProtoReflect.Descriptor instead.
 func (*ScanAndCheckResponse) Descriptor() ([]byte, []int) {
-	return file_scan_subdomain_proto_rawDescGZIP(), []int{1}
+	return file_scan_subdomain_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ScanAndCheckResponse) GetSubdomain() string {
@@ -176,6 +236,50 @@ func (x *ScanAndCheckResponse) GetScanId() string {
 	return ""
 }
 
+type ScanAndCheckTerminalResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Data          []byte                 `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ScanAndCheckTerminalResponse) Reset() {
+	*x = ScanAndCheckTerminalResponse{}
+	mi := &file_scan_subdomain_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ScanAndCheckTerminalResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScanAndCheckTerminalResponse) ProtoMessage() {}
+
+func (x *ScanAndCheckTerminalResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_scan_subdomain_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScanAndCheckTerminalResponse.ProtoReflect.Descriptor instead.
+func (*ScanAndCheckTerminalResponse) Descriptor() ([]byte, []int) {
+	return file_scan_subdomain_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ScanAndCheckTerminalResponse) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
 type CancelScanRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ScanId        string                 `protobuf:"bytes,1,opt,name=scan_id,json=scanId,proto3" json:"scan_id,omitempty"`
@@ -186,7 +290,7 @@ type CancelScanRequest struct {
 
 func (x *CancelScanRequest) Reset() {
 	*x = CancelScanRequest{}
-	mi := &file_scan_subdomain_proto_msgTypes[2]
+	mi := &file_scan_subdomain_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -198,7 +302,7 @@ func (x *CancelScanRequest) String() string {
 func (*CancelScanRequest) ProtoMessage() {}
 
 func (x *CancelScanRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_scan_subdomain_proto_msgTypes[2]
+	mi := &file_scan_subdomain_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -211,7 +315,7 @@ func (x *CancelScanRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelScanRequest.ProtoReflect.Descriptor instead.
 func (*CancelScanRequest) Descriptor() ([]byte, []int) {
-	return file_scan_subdomain_proto_rawDescGZIP(), []int{2}
+	return file_scan_subdomain_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *CancelScanRequest) GetScanId() string {
@@ -239,7 +343,7 @@ type CancelScanResponse struct {
 
 func (x *CancelScanResponse) Reset() {
 	*x = CancelScanResponse{}
-	mi := &file_scan_subdomain_proto_msgTypes[3]
+	mi := &file_scan_subdomain_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -251,7 +355,7 @@ func (x *CancelScanResponse) String() string {
 func (*CancelScanResponse) ProtoMessage() {}
 
 func (x *CancelScanResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_scan_subdomain_proto_msgTypes[3]
+	mi := &file_scan_subdomain_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -264,7 +368,7 @@ func (x *CancelScanResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelScanResponse.ProtoReflect.Descriptor instead.
 func (*CancelScanResponse) Descriptor() ([]byte, []int) {
-	return file_scan_subdomain_proto_rawDescGZIP(), []int{3}
+	return file_scan_subdomain_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *CancelScanResponse) GetScanId() string {
@@ -296,6 +400,10 @@ const file_scan_subdomain_proto_rawDesc = "" +
 	"\x13ScanAndCheckRequest\x12\x16\n" +
 	"\x06domain\x18\x01 \x01(\tR\x06domain\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x17\n" +
+	"\ascan_id\x18\x03 \x01(\tR\x06scanId\"g\n" +
+	"\x1bScanAndCheckTerminalRequest\x12\x16\n" +
+	"\x06domain\x18\x01 \x01(\tR\x06domain\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x17\n" +
 	"\ascan_id\x18\x03 \x01(\tR\x06scanId\"\xd3\x01\n" +
 	"\x14ScanAndCheckResponse\x12\x1c\n" +
 	"\tsubdomain\x18\x01 \x01(\tR\tsubdomain\x12\x19\n" +
@@ -305,18 +413,21 @@ const file_scan_subdomain_proto_rawDesc = "" +
 	"\x05title\x18\x04 \x01(\tR\x05title\x12\x0e\n" +
 	"\x02ip\x18\x05 \x01(\tR\x02ip\x12\"\n" +
 	"\ftechnologies\x18\x06 \x03(\tR\ftechnologies\x12\x17\n" +
-	"\ascan_id\x18\a \x01(\tR\x06scanId\"E\n" +
+	"\ascan_id\x18\a \x01(\tR\x06scanId\"2\n" +
+	"\x1cScanAndCheckTerminalResponse\x12\x12\n" +
+	"\x04data\x18\x01 \x01(\fR\x04data\"E\n" +
 	"\x11CancelScanRequest\x12\x17\n" +
 	"\ascan_id\x18\x01 \x01(\tR\x06scanId\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\"e\n" +
 	"\x12CancelScanResponse\x12\x17\n" +
 	"\ascan_id\x18\x01 \x01(\tR\x06scanId\x12\x1c\n" +
 	"\tcancelled\x18\x02 \x01(\bR\tcancelled\x12\x18\n" +
-	"\amessage\x18\x03 \x01(\tR\amessage2\xcb\x01\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage2\xc0\x02\n" +
 	"\x17SubdomainScannerService\x12[\n" +
 	"\fScanAndCheck\x12#.scan_subdomain.ScanAndCheckRequest\x1a$.scan_subdomain.ScanAndCheckResponse0\x01\x12S\n" +
 	"\n" +
-	"CancelScan\x12!.scan_subdomain.CancelScanRequest\x1a\".scan_subdomain.CancelScanResponseB-Z+go-server/gen/scan_subdomain;scan_subdomainb\x06proto3"
+	"CancelScan\x12!.scan_subdomain.CancelScanRequest\x1a\".scan_subdomain.CancelScanResponse\x12s\n" +
+	"\x14ScanAndCheckTerminal\x12+.scan_subdomain.ScanAndCheckTerminalRequest\x1a,.scan_subdomain.ScanAndCheckTerminalResponse0\x01B-Z+go-server/gen/scan_subdomain;scan_subdomainb\x06proto3"
 
 var (
 	file_scan_subdomain_proto_rawDescOnce sync.Once
@@ -330,20 +441,24 @@ func file_scan_subdomain_proto_rawDescGZIP() []byte {
 	return file_scan_subdomain_proto_rawDescData
 }
 
-var file_scan_subdomain_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_scan_subdomain_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_scan_subdomain_proto_goTypes = []any{
-	(*ScanAndCheckRequest)(nil),  // 0: scan_subdomain.ScanAndCheckRequest
-	(*ScanAndCheckResponse)(nil), // 1: scan_subdomain.ScanAndCheckResponse
-	(*CancelScanRequest)(nil),    // 2: scan_subdomain.CancelScanRequest
-	(*CancelScanResponse)(nil),   // 3: scan_subdomain.CancelScanResponse
+	(*ScanAndCheckRequest)(nil),          // 0: scan_subdomain.ScanAndCheckRequest
+	(*ScanAndCheckTerminalRequest)(nil),  // 1: scan_subdomain.ScanAndCheckTerminalRequest
+	(*ScanAndCheckResponse)(nil),         // 2: scan_subdomain.ScanAndCheckResponse
+	(*ScanAndCheckTerminalResponse)(nil), // 3: scan_subdomain.ScanAndCheckTerminalResponse
+	(*CancelScanRequest)(nil),            // 4: scan_subdomain.CancelScanRequest
+	(*CancelScanResponse)(nil),           // 5: scan_subdomain.CancelScanResponse
 }
 var file_scan_subdomain_proto_depIdxs = []int32{
 	0, // 0: scan_subdomain.SubdomainScannerService.ScanAndCheck:input_type -> scan_subdomain.ScanAndCheckRequest
-	2, // 1: scan_subdomain.SubdomainScannerService.CancelScan:input_type -> scan_subdomain.CancelScanRequest
-	1, // 2: scan_subdomain.SubdomainScannerService.ScanAndCheck:output_type -> scan_subdomain.ScanAndCheckResponse
-	3, // 3: scan_subdomain.SubdomainScannerService.CancelScan:output_type -> scan_subdomain.CancelScanResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	4, // 1: scan_subdomain.SubdomainScannerService.CancelScan:input_type -> scan_subdomain.CancelScanRequest
+	1, // 2: scan_subdomain.SubdomainScannerService.ScanAndCheckTerminal:input_type -> scan_subdomain.ScanAndCheckTerminalRequest
+	2, // 3: scan_subdomain.SubdomainScannerService.ScanAndCheck:output_type -> scan_subdomain.ScanAndCheckResponse
+	5, // 4: scan_subdomain.SubdomainScannerService.CancelScan:output_type -> scan_subdomain.CancelScanResponse
+	3, // 5: scan_subdomain.SubdomainScannerService.ScanAndCheckTerminal:output_type -> scan_subdomain.ScanAndCheckTerminalResponse
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -360,7 +475,7 @@ func file_scan_subdomain_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_scan_subdomain_proto_rawDesc), len(file_scan_subdomain_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

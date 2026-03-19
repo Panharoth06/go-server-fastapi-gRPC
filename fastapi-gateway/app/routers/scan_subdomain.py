@@ -1,4 +1,3 @@
-import json
 import uuid
 from collections.abc import Iterator
 from typing import Annotated
@@ -55,27 +54,23 @@ def scan_and_check(domain: str, current_user: CurrentUserDep, response: Response
 
 @router.post("/stream/{domain}", dependencies=[Depends(scan_subdomain_rate_limiter)])
 def scan_and_check_stream(domain: str, current_user: CurrentUserDep) -> StreamingResponse:
-    
     resolved_scan_id = build_scan_id()
 
     def event_generator() -> Iterator[str]:
         try:
-            for result in scan_subdomain_client.scan_and_check(
+            for line in scan_subdomain_client.scan_and_check_terminal(
                 domain,
-                current_user.user_id,   
+                current_user.user_id,
                 resolved_scan_id,
             ):
-                yield json.dumps(result) + "\n"
+                yield line
         except grpc.RpcError as exc:
-            error_event = {
-                "scan_id": resolved_scan_id,
-                "error": exc.details() or "gRPC request failed",
-            }
-            yield json.dumps(error_event) + "\n"
+            error_line = f"[error] scan_id={resolved_scan_id} {exc.details() or 'gRPC request failed'}\n"
+            yield error_line
 
     return StreamingResponse(
         event_generator(),
-        media_type="application/x-ndjson",
+        media_type="text/plain; charset=utf-8",
         headers={"X-Scan-ID": resolved_scan_id},
     )
 

@@ -19,8 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SubdomainScannerService_ScanAndCheck_FullMethodName = "/scan_subdomain.SubdomainScannerService/ScanAndCheck"
-	SubdomainScannerService_CancelScan_FullMethodName   = "/scan_subdomain.SubdomainScannerService/CancelScan"
+	SubdomainScannerService_ScanAndCheck_FullMethodName         = "/scan_subdomain.SubdomainScannerService/ScanAndCheck"
+	SubdomainScannerService_CancelScan_FullMethodName           = "/scan_subdomain.SubdomainScannerService/CancelScan"
+	SubdomainScannerService_ScanAndCheckTerminal_FullMethodName = "/scan_subdomain.SubdomainScannerService/ScanAndCheckTerminal"
 )
 
 // SubdomainScannerServiceClient is the client API for SubdomainScannerService service.
@@ -35,6 +36,10 @@ type SubdomainScannerServiceClient interface {
 	// CancelScan allows clients to cancel an ongoing scan by providing the scan_id and user_id.
 	// It returns a CancelScanResponse indicating whether the cancellation was successful.
 	CancelScan(ctx context.Context, in *CancelScanRequest, opts ...grpc.CallOption) (*CancelScanResponse, error)
+	// ScanAndCheckTerminal performs the same scan as ScanAndCheck but streams
+	// raw terminal-style output in real-time via ScanAndCheckTerminalResponse.
+	// This gives clients a CLI-like experience while the tool is running.
+	ScanAndCheckTerminal(ctx context.Context, in *ScanAndCheckTerminalRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ScanAndCheckTerminalResponse], error)
 }
 
 type subdomainScannerServiceClient struct {
@@ -74,6 +79,25 @@ func (c *subdomainScannerServiceClient) CancelScan(ctx context.Context, in *Canc
 	return out, nil
 }
 
+func (c *subdomainScannerServiceClient) ScanAndCheckTerminal(ctx context.Context, in *ScanAndCheckTerminalRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ScanAndCheckTerminalResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &SubdomainScannerService_ServiceDesc.Streams[1], SubdomainScannerService_ScanAndCheckTerminal_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[ScanAndCheckTerminalRequest, ScanAndCheckTerminalResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type SubdomainScannerService_ScanAndCheckTerminalClient = grpc.ServerStreamingClient[ScanAndCheckTerminalResponse]
+
 // SubdomainScannerServiceServer is the server API for SubdomainScannerService service.
 // All implementations must embed UnimplementedSubdomainScannerServiceServer
 // for forward compatibility.
@@ -86,6 +110,10 @@ type SubdomainScannerServiceServer interface {
 	// CancelScan allows clients to cancel an ongoing scan by providing the scan_id and user_id.
 	// It returns a CancelScanResponse indicating whether the cancellation was successful.
 	CancelScan(context.Context, *CancelScanRequest) (*CancelScanResponse, error)
+	// ScanAndCheckTerminal performs the same scan as ScanAndCheck but streams
+	// raw terminal-style output in real-time via ScanAndCheckTerminalResponse.
+	// This gives clients a CLI-like experience while the tool is running.
+	ScanAndCheckTerminal(*ScanAndCheckTerminalRequest, grpc.ServerStreamingServer[ScanAndCheckTerminalResponse]) error
 	mustEmbedUnimplementedSubdomainScannerServiceServer()
 }
 
@@ -101,6 +129,9 @@ func (UnimplementedSubdomainScannerServiceServer) ScanAndCheck(*ScanAndCheckRequ
 }
 func (UnimplementedSubdomainScannerServiceServer) CancelScan(context.Context, *CancelScanRequest) (*CancelScanResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CancelScan not implemented")
+}
+func (UnimplementedSubdomainScannerServiceServer) ScanAndCheckTerminal(*ScanAndCheckTerminalRequest, grpc.ServerStreamingServer[ScanAndCheckTerminalResponse]) error {
+	return status.Error(codes.Unimplemented, "method ScanAndCheckTerminal not implemented")
 }
 func (UnimplementedSubdomainScannerServiceServer) mustEmbedUnimplementedSubdomainScannerServiceServer() {
 }
@@ -153,6 +184,17 @@ func _SubdomainScannerService_CancelScan_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SubdomainScannerService_ScanAndCheckTerminal_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ScanAndCheckTerminalRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(SubdomainScannerServiceServer).ScanAndCheckTerminal(m, &grpc.GenericServerStream[ScanAndCheckTerminalRequest, ScanAndCheckTerminalResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type SubdomainScannerService_ScanAndCheckTerminalServer = grpc.ServerStreamingServer[ScanAndCheckTerminalResponse]
+
 // SubdomainScannerService_ServiceDesc is the grpc.ServiceDesc for SubdomainScannerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -169,6 +211,11 @@ var SubdomainScannerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "ScanAndCheck",
 			Handler:       _SubdomainScannerService_ScanAndCheck_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "ScanAndCheckTerminal",
+			Handler:       _SubdomainScannerService_ScanAndCheckTerminal_Handler,
 			ServerStreams: true,
 		},
 	},

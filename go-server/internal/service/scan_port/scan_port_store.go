@@ -4,13 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"go-server/internal/database"
 	"log"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"go-server/internal/database"
 	dbsqlc "go-server/internal/database/sqlc"
 
 	"github.com/google/uuid"
@@ -123,13 +123,9 @@ func newPortScanPersistence(
 	p.jobs = make(chan openPortPersistTask, portPersistQueueSize)
 	workerCount := portPersistWorkerSize
 	// Avoid creating more workers than expected tasks.
-	if expectedResultCount < workerCount {
-		workerCount = expectedResultCount
-	}
+	workerCount = min(workerCount, expectedResultCount)
 	// Always keep at least one worker when queue is enabled.
-	if workerCount < 1 {
-		workerCount = 1
-	}
+	workerCount = max(workerCount, 1)
 
 	ensureDomain := newDomainResolver(ctx, store, host, userID)
 	for i := 0; i < workerCount; i++ {

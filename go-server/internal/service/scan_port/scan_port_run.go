@@ -1,7 +1,9 @@
+// author @Panharoth06
 package scanport
 
 import (
 	"context"
+	"go-server/gen/scan_port"
 	"log"
 	"os"
 	"os/exec"
@@ -9,8 +11,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-
-	"go-server/gen/scan_port"
 
 	"github.com/Ullaakut/nmap/v3"
 	"github.com/projectdiscovery/goflags"

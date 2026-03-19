@@ -2,7 +2,9 @@ package scansubdomain
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -42,6 +44,13 @@ type streamSender struct {
 	mu     sync.Mutex
 	err    error
 	stream scan_subdomain.SubdomainScannerService_ScanAndCheckServer
+}
+
+type terminalStreamSender struct {
+	cancel context.CancelFunc
+	mu     sync.Mutex
+	err    error
+	stream scan_subdomain.SubdomainScannerService_ScanAndCheckTerminalServer
 }
 
 // runSubdomainScan executes the full scan lifecycle after the RPC layer has
@@ -88,6 +97,77 @@ func runSubdomainScan(
 	}
 
 	// Surface stream transport failures as consistent gRPC errors.
+	if err := sender.finalError(); err != nil {
+		if isCanceledError(ctx, err) {
+			return canceledScanError()
+		}
+		return status.Errorf(codes.Internal, "stream send failed: %v", err)
+	}
+
+	return nil
+}
+
+// runSubdomainScanTerminal executes the same scan lifecycle as runSubdomainScan
+// but emits terminal-style progress lines instead of structured JSON-like
+// scan response objects.
+func runSubdomainScanTerminal(
+	ctx context.Context,
+	cancel context.CancelFunc,
+	stream scan_subdomain.SubdomainScannerService_ScanAndCheckTerminalServer,
+	domain string,
+	userID string,
+	scanID string,
+) error {
+	sender := &terminalStreamSender{
+		cancel: cancel,
+		stream: stream,
+	}
+
+	sender.sendLinef("[*] Starting subdomain scan for %s (scan_id=%s)", domain, scanID)
+	sender.sendLinef("[*] Running subfinder...")
+
+	subdomains, err := enumerateSubdomains(ctx, domain)
+	if err != nil {
+		sender.sendLinef("[!] subfinder failed: %v", err)
+		return err
+	}
+	// No discovered subdomains means no probe/stream work is needed.
+	if len(subdomains) == 0 {
+		sender.sendLinef("[*] No subdomains discovered for %s", domain)
+		return nil
+	}
+	sender.sendLinef("[+] Found %d subdomains", len(subdomains))
+
+	store, err := getStore()
+	// Continue scanning even if persistence is unavailable.
+	if err != nil {
+		log.Printf("scan_subdomain: database unavailable, skipping persistence: %v", err)
+		sender.sendLinef("[!] persistence unavailable; running stream-only mode")
+		store = nil
+	}
+
+	persistence := newScanPersistence(ctx, store, domain, userID, len(subdomains))
+	defer persistence.closeAndWait()
+
+	sender.sendLinef("[*] Running httpx against %d targets...", len(subdomains))
+	if err := runHTTPXEnumerationTerminal(ctx, scanID, subdomains, sender, persistence); err != nil {
+		return err
+	}
+
+	// Normalize post-run cancellation checks.
+	if err := ctx.Err(); err != nil {
+		return canceledScanError()
+	}
+
+	// Surface stream transport failures as consistent gRPC errors.
+	if err := sender.finalError(); err != nil {
+		if isCanceledError(ctx, err) {
+			return canceledScanError()
+		}
+		return status.Errorf(codes.Internal, "stream send failed: %v", err)
+	}
+
+	sender.sendLinef("[*] Scan completed (scan_id=%s)", scanID)
 	if err := sender.finalError(); err != nil {
 		if isCanceledError(ctx, err) {
 			return canceledScanError()
@@ -238,6 +318,110 @@ func runHTTPXEnumeration(
 	return nil
 }
 
+// runHTTPXEnumerationTerminal probes each discovered subdomain and writes
+// terminal-style lines to the stream while preserving result persistence.
+func runHTTPXEnumerationTerminal(
+	ctx context.Context,
+	scanID string,
+	subdomains []string,
+	sender *terminalStreamSender,
+	persistence *scanPersistence,
+) error {
+	httpxOptions := &httpxrunner.Options{
+		Methods:         "GET",
+		InputTargetHost: goflags.StringSlice(subdomains),
+		StatusCode:      true,
+		OutputIP:        true,
+		TechDetect:      true,
+		ExtractTitle:    true,
+		Timeout:         10,
+		Retries:         2,
+		NoColor:         true,
+		Silent:          true,
+		OnResult: func(r httpxrunner.Result) {
+			select {
+			// Stop callback work as soon as context is canceled.
+			case <-ctx.Done():
+				return
+			default:
+			}
+
+			// A positive status code from a non-failed probe means reachable target.
+			isAlive := !r.Failed && r.StatusCode > 0
+			sender.sendLine(formatHTTPXTerminalLine(r, isAlive))
+			// Stop queuing persistence once stream send has failed.
+			if sender.finalError() != nil {
+				return
+			}
+
+			persistence.enqueue(scanResultPersistTask{
+				subdomain:    r.Input,
+				statusCode:   r.StatusCode,
+				title:        r.Title,
+				ip:           r.HostIP,
+				isAlive:      isAlive,
+				technologies: append([]string(nil), r.Technologies...),
+			})
+		},
+	}
+	// Validate options before creating the runner.
+	if err := httpxOptions.ValidateOptions(); err != nil {
+		return status.Errorf(codes.Internal, "invalid httpx options: %v", err)
+	}
+
+	httpxRunner, err := httpxrunner.New(httpxOptions)
+	// Runner creation failure is an internal service issue.
+	if err != nil {
+		return status.Errorf(codes.Internal, "failed to create httpx runner: %v", err)
+	}
+
+	var httpxCloseOnce sync.Once
+	closeHTTPX := func() {
+		httpxCloseOnce.Do(func() {
+			httpxRunner.Close()
+		})
+	}
+	defer closeHTTPX()
+
+	httpxStopped := make(chan struct{})
+	go func() {
+		select {
+		// On cancellation, close the runner to stop network work quickly.
+		case <-ctx.Done():
+			closeHTTPX()
+		case <-httpxStopped:
+		}
+	}()
+
+	httpxRunner.RunEnumeration()
+	close(httpxStopped)
+
+	sender.sendLinef("[*] httpx enumeration finished for scan_id=%s", scanID)
+	return nil
+}
+
+func formatHTTPXTerminalLine(r httpxrunner.Result, isAlive bool) string {
+	status := "DOWN"
+	if isAlive {
+		status = "UP"
+	}
+
+	ip := strings.TrimSpace(r.HostIP)
+	if ip == "" {
+		ip = "-"
+	}
+	title := strings.TrimSpace(r.Title)
+	if title == "" {
+		title = "-"
+	}
+	tech := "-"
+	if len(r.Technologies) > 0 {
+		tech = strings.Join(r.Technologies, ",")
+	}
+
+	return fmt.Sprintf("[%s] %s code=%d ip=%s title=%q tech=%s", status, r.Input, r.StatusCode, ip, title, tech)
+}
+
 // send writes one scan result to the gRPC stream and cancels the scan when the
 // stream can no longer accept more messages.
 func (s *streamSender) send(resp *scan_subdomain.ScanAndCheckResponse) {
@@ -258,6 +442,38 @@ func (s *streamSender) send(resp *scan_subdomain.ScanAndCheckResponse) {
 
 // finalError returns the first stream send error recorded during enumeration.
 func (s *streamSender) finalError() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.err
+}
+
+func (s *terminalStreamSender) sendLinef(format string, args ...any) {
+	s.sendLine(fmt.Sprintf(format, args...))
+}
+
+func (s *terminalStreamSender) sendLine(line string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Once a send error exists, ignore later responses.
+	if s.err != nil {
+		return
+	}
+
+	if !strings.HasSuffix(line, "\n") {
+		line += "\n"
+	}
+
+	s.err = s.stream.Send(&scan_subdomain.ScanAndCheckTerminalResponse{
+		Data: []byte(line),
+	})
+	// Trigger cancellation so upstream scan work stops promptly.
+	if s.err != nil {
+		s.cancel()
+	}
+}
+
+func (s *terminalStreamSender) finalError() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.err

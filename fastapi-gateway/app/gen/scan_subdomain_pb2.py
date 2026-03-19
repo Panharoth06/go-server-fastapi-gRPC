@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x14scan_subdomain.proto\x12\x0escan_subdomain\"G\n\x13ScanAndCheckRequest\x12\x0e\n\x06\x64omain\x18\x01 \x01(\t\x12\x0f\n\x07user_id\x18\x02 \x01(\t\x12\x0f\n\x07scan_id\x18\x03 \x01(\t\"\x92\x01\n\x14ScanAndCheckResponse\x12\x11\n\tsubdomain\x18\x01 \x01(\t\x12\x10\n\x08is_alive\x18\x02 \x01(\x08\x12\x13\n\x0bstatus_code\x18\x03 \x01(\x05\x12\r\n\x05title\x18\x04 \x01(\t\x12\n\n\x02ip\x18\x05 \x01(\t\x12\x14\n\x0ctechnologies\x18\x06 \x03(\t\x12\x0f\n\x07scan_id\x18\x07 \x01(\t\"5\n\x11\x43\x61ncelScanRequest\x12\x0f\n\x07scan_id\x18\x01 \x01(\t\x12\x0f\n\x07user_id\x18\x02 \x01(\t\"I\n\x12\x43\x61ncelScanResponse\x12\x0f\n\x07scan_id\x18\x01 \x01(\t\x12\x11\n\tcancelled\x18\x02 \x01(\x08\x12\x0f\n\x07message\x18\x03 \x01(\t2\xcb\x01\n\x17SubdomainScannerService\x12[\n\x0cScanAndCheck\x12#.scan_subdomain.ScanAndCheckRequest\x1a$.scan_subdomain.ScanAndCheckResponse0\x01\x12S\n\nCancelScan\x12!.scan_subdomain.CancelScanRequest\x1a\".scan_subdomain.CancelScanResponseB-Z+go-server/gen/scan_subdomain;scan_subdomainb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x14scan_subdomain.proto\x12\x0escan_subdomain\"G\n\x13ScanAndCheckRequest\x12\x0e\n\x06\x64omain\x18\x01 \x01(\t\x12\x0f\n\x07user_id\x18\x02 \x01(\t\x12\x0f\n\x07scan_id\x18\x03 \x01(\t\"O\n\x1bScanAndCheckTerminalRequest\x12\x0e\n\x06\x64omain\x18\x01 \x01(\t\x12\x0f\n\x07user_id\x18\x02 \x01(\t\x12\x0f\n\x07scan_id\x18\x03 \x01(\t\"\x92\x01\n\x14ScanAndCheckResponse\x12\x11\n\tsubdomain\x18\x01 \x01(\t\x12\x10\n\x08is_alive\x18\x02 \x01(\x08\x12\x13\n\x0bstatus_code\x18\x03 \x01(\x05\x12\r\n\x05title\x18\x04 \x01(\t\x12\n\n\x02ip\x18\x05 \x01(\t\x12\x14\n\x0ctechnologies\x18\x06 \x03(\t\x12\x0f\n\x07scan_id\x18\x07 \x01(\t\",\n\x1cScanAndCheckTerminalResponse\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\"5\n\x11\x43\x61ncelScanRequest\x12\x0f\n\x07scan_id\x18\x01 \x01(\t\x12\x0f\n\x07user_id\x18\x02 \x01(\t\"I\n\x12\x43\x61ncelScanResponse\x12\x0f\n\x07scan_id\x18\x01 \x01(\t\x12\x11\n\tcancelled\x18\x02 \x01(\x08\x12\x0f\n\x07message\x18\x03 \x01(\t2\xc0\x02\n\x17SubdomainScannerService\x12[\n\x0cScanAndCheck\x12#.scan_subdomain.ScanAndCheckRequest\x1a$.scan_subdomain.ScanAndCheckResponse0\x01\x12S\n\nCancelScan\x12!.scan_subdomain.CancelScanRequest\x1a\".scan_subdomain.CancelScanResponse\x12s\n\x14ScanAndCheckTerminal\x12+.scan_subdomain.ScanAndCheckTerminalRequest\x1a,.scan_subdomain.ScanAndCheckTerminalResponse0\x01\x42-Z+go-server/gen/scan_subdomain;scan_subdomainb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -34,12 +34,16 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'Z+go-server/gen/scan_subdomain;scan_subdomain'
   _globals['_SCANANDCHECKREQUEST']._serialized_start=40
   _globals['_SCANANDCHECKREQUEST']._serialized_end=111
-  _globals['_SCANANDCHECKRESPONSE']._serialized_start=114
-  _globals['_SCANANDCHECKRESPONSE']._serialized_end=260
-  _globals['_CANCELSCANREQUEST']._serialized_start=262
-  _globals['_CANCELSCANREQUEST']._serialized_end=315
-  _globals['_CANCELSCANRESPONSE']._serialized_start=317
-  _globals['_CANCELSCANRESPONSE']._serialized_end=390
-  _globals['_SUBDOMAINSCANNERSERVICE']._serialized_start=393
-  _globals['_SUBDOMAINSCANNERSERVICE']._serialized_end=596
+  _globals['_SCANANDCHECKTERMINALREQUEST']._serialized_start=113
+  _globals['_SCANANDCHECKTERMINALREQUEST']._serialized_end=192
+  _globals['_SCANANDCHECKRESPONSE']._serialized_start=195
+  _globals['_SCANANDCHECKRESPONSE']._serialized_end=341
+  _globals['_SCANANDCHECKTERMINALRESPONSE']._serialized_start=343
+  _globals['_SCANANDCHECKTERMINALRESPONSE']._serialized_end=387
+  _globals['_CANCELSCANREQUEST']._serialized_start=389
+  _globals['_CANCELSCANREQUEST']._serialized_end=442
+  _globals['_CANCELSCANRESPONSE']._serialized_start=444
+  _globals['_CANCELSCANRESPONSE']._serialized_end=517
+  _globals['_SUBDOMAINSCANNERSERVICE']._serialized_start=520
+  _globals['_SUBDOMAINSCANNERSERVICE']._serialized_end=840
 # @@protoc_insertion_point(module_scope)

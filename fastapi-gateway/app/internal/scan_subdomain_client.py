@@ -29,6 +29,17 @@ class ScanSubdomainClient:
                 "technologies": list(response.technologies)
             }
 
+    def scan_and_check_terminal(self, domain: str, user_id: str = "", scan_id: str = ""):
+        request = scan_subdomain_pb2.ScanAndCheckTerminalRequest(
+            domain=domain,
+            user_id=user_id,
+            scan_id=scan_id,
+        )
+
+        responses = self.stub.ScanAndCheckTerminal(request)
+        for response in responses:
+            yield response.data.decode("utf-8", errors="replace")
+
     def cancel_scan(self, scan_id: str, user_id: str = ""):
         request = scan_subdomain_pb2.CancelScanRequest(scan_id=scan_id, user_id=user_id)
         response = self.stub.CancelScan(request)
@@ -44,6 +55,10 @@ scanner_client = ScanSubdomainClient()
 
 def scan_and_check(domain: str, user_id: str = "", scan_id: str = ""):
     return scanner_client.scan_and_check(domain=domain, user_id=user_id, scan_id=scan_id)
+
+
+def scan_and_check_terminal(domain: str, user_id: str = "", scan_id: str = ""):
+    return scanner_client.scan_and_check_terminal(domain=domain, user_id=user_id, scan_id=scan_id)
 
 
 def cancel_scan(scan_id: str, user_id: str = ""):

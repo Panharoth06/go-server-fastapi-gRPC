@@ -45,6 +45,11 @@ class SubdomainScannerServiceStub(object):
                 request_serializer=scan__subdomain__pb2.CancelScanRequest.SerializeToString,
                 response_deserializer=scan__subdomain__pb2.CancelScanResponse.FromString,
                 _registered_method=True)
+        self.ScanAndCheckTerminal = channel.unary_stream(
+                '/scan_subdomain.SubdomainScannerService/ScanAndCheckTerminal',
+                request_serializer=scan__subdomain__pb2.ScanAndCheckTerminalRequest.SerializeToString,
+                response_deserializer=scan__subdomain__pb2.ScanAndCheckTerminalResponse.FromString,
+                _registered_method=True)
 
 
 class SubdomainScannerServiceServicer(object):
@@ -67,6 +72,15 @@ class SubdomainScannerServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def ScanAndCheckTerminal(self, request, context):
+        """ScanAndCheckTerminal performs the same scan as ScanAndCheck but streams
+        raw terminal-style output in real-time via ScanAndCheckTerminalResponse.
+        This gives clients a CLI-like experience while the tool is running.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_SubdomainScannerServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -79,6 +93,11 @@ def add_SubdomainScannerServiceServicer_to_server(servicer, server):
                     servicer.CancelScan,
                     request_deserializer=scan__subdomain__pb2.CancelScanRequest.FromString,
                     response_serializer=scan__subdomain__pb2.CancelScanResponse.SerializeToString,
+            ),
+            'ScanAndCheckTerminal': grpc.unary_stream_rpc_method_handler(
+                    servicer.ScanAndCheckTerminal,
+                    request_deserializer=scan__subdomain__pb2.ScanAndCheckTerminalRequest.FromString,
+                    response_serializer=scan__subdomain__pb2.ScanAndCheckTerminalResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -136,6 +155,33 @@ class SubdomainScannerService(object):
             '/scan_subdomain.SubdomainScannerService/CancelScan',
             scan__subdomain__pb2.CancelScanRequest.SerializeToString,
             scan__subdomain__pb2.CancelScanResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ScanAndCheckTerminal(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(
+            request,
+            target,
+            '/scan_subdomain.SubdomainScannerService/ScanAndCheckTerminal',
+            scan__subdomain__pb2.ScanAndCheckTerminalRequest.SerializeToString,
+            scan__subdomain__pb2.ScanAndCheckTerminalResponse.FromString,
             options,
             channel_credentials,
             insecure,

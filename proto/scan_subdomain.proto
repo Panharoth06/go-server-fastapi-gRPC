@@ -11,10 +11,21 @@ service SubdomainScannerService {
   // CancelScan allows clients to cancel an ongoing scan by providing the scan_id and user_id. 
   // It returns a CancelScanResponse indicating whether the cancellation was successful.
   rpc CancelScan (CancelScanRequest) returns (CancelScanResponse);
+
+  // ScanAndCheckTerminal performs the same scan as ScanAndCheck but streams
+  // raw terminal-style output in real-time via ScanAndCheckTerminalResponse.
+  // This gives clients a CLI-like experience while the tool is running.
+  rpc ScanAndCheckTerminal (ScanAndCheckTerminalRequest) returns (stream ScanAndCheckTerminalResponse);
 }
 
 // message for request
 message ScanAndCheckRequest {
+  string domain = 1;
+  string user_id = 2;
+  string scan_id = 3;
+}
+
+message ScanAndCheckTerminalRequest {
   string domain = 1;
   string user_id = 2;
   string scan_id = 3;
@@ -30,6 +41,10 @@ message ScanAndCheckResponse {
   // repeated = array/list because a subdomain is possible to have many technologies
   repeated string technologies = 6;
   string scan_id = 7;
+}
+
+message ScanAndCheckTerminalResponse {
+  bytes data = 1;
 }
 
 message CancelScanRequest {

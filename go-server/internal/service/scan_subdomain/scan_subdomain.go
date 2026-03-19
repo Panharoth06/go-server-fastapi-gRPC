@@ -64,6 +64,44 @@ func (s *scanSubdomainServer) ScanAndCheck(
 	return runSubdomainScan(ctx, cancel, stream, domain, userID, scanID)
 }
 
+// ScanAndCheckTerminal validates the incoming request and streams raw,
+// terminal-style scan output so clients can watch scan progress in real-time.
+func (s *scanSubdomainServer) ScanAndCheckTerminal(
+	req *scan_subdomain.ScanAndCheckTerminalRequest,
+	stream scan_subdomain.SubdomainScannerService_ScanAndCheckTerminalServer,
+) error {
+	// Reject nil requests to avoid dereferencing missing payloads.
+	if req == nil {
+		return status.Error(codes.InvalidArgument, "request cannot be empty")
+	}
+
+	domain := strings.TrimSpace(req.Domain)
+	// Domain is mandatory for subdomain enumeration.
+	if domain == "" {
+		return status.Error(codes.InvalidArgument, "domain cannot be empty")
+	}
+
+	userID := strings.TrimSpace(req.UserId)
+	scanID := normalizeScanID(req.ScanId)
+	// Generate a scan ID when one is not provided.
+	if scanID == "" {
+		scanID = uuid.NewString()
+	}
+
+	ctx, cancel := context.WithCancel(stream.Context())
+	// Reject duplicate scan IDs that are already running.
+	if err := registerActiveScan(scanID, userID, cancel); err != nil {
+		cancel()
+		return err
+	}
+	defer func() {
+		unregisterActiveScan(scanID)
+		cancel()
+	}()
+
+	return runSubdomainScanTerminal(ctx, cancel, stream, domain, userID, scanID)
+}
+
 // CancelScan looks up a running scan, verifies that the requesting user owns
 // it when ownership is set, and triggers the stored cancel function once.
 func (s *scanSubdomainServer) CancelScan(
